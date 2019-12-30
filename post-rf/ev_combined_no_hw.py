@@ -17,6 +17,18 @@ def eval_func(hw_spec):
     return eval_val
 
 def random_life(df_order,dnn,num_samples,stride_list,init_multiplier,hw_spec,n=200,return_best_dict=False):
+    #after smapling a loop-order, routine to optimize tiling factors to get the energy feedback
+
+
+    #df_order: input loop-order
+    #dnn: user input DNN specs
+    #num_samples: max_number of population during tiling factor optimization
+    #stride_list: stride numbers for DNN layers
+    #init_multiplier: initial population multiplier in tiling factor optimization
+    #hw_spec: input hw_spec
+    #n: number of iteration to go through in tiling factor optimization 
+    #return_best_dict: wether to return the detail results, otherwise only score(penalty) returned
+
     df_order=copy.deepcopy(df_order)
     dnn=copy.deepcopy(dnn)
     layer_wise=(type(df_order[0])==list)
@@ -56,6 +68,17 @@ def random_life(df_order,dnn,num_samples,stride_list,init_multiplier,hw_spec,n=2
 
 
 def fine_tune(best_lp_set,input_dnn,input_rf,input_stride_list,hw_spec,n=200):
+    #a more refined version of random_life, aimed to get the best tiling factors, in turn the best performance, for a loop-order set
+
+    #best_lp_set: loop-orders for each layer
+    #input_dnn: user input dnn specs
+    #input_rf: rf-noc-template to be used
+    #input_stride_list: ...
+    #hw_spec: ...
+    #n: iteration to optimize tiling factors
+
+
+
     sum_score=0
     dnn=copy.deepcopy(input_dnn)
     stride_list=copy.deepcopy(input_stride_list)
@@ -81,6 +104,7 @@ def fine_tune(best_lp_set,input_dnn,input_rf,input_stride_list,hw_spec,n=200):
 
 
 def baseline_gen(best_lp_set,input_dnn,input_stride_list,hw_spec,n=200):
+    #legacy function not used; but leave it
     sum_score=0
     dnn=copy.deepcopy(input_dnn)
     stride_list=copy.deepcopy(input_stride_list)
@@ -792,17 +816,14 @@ def hw_worker(load):
 
 
         print(pop_list)
-        #!!!!!!!!!!!!!!!!!!!!!!!!!!!TODO WE need to remember best dict..but 
+
+
+
+
 
         dnn=input_dnn
         stride_list=input_stride_list
-        #fine tune loop order based on memory accumulation
-    #    new_ref=[]
-    #    for _ in range(len(dnn)):
-    #        new_ref.append(reference_starting_points[0])
-    #    ref_score=fine_tune(new_ref,dnn,highest_rf,stride_list,tmp_hw_spec,n=int(20))   #change back 
-    #    print('rs score: ', ref_score)
-
+        #fine tune loop order based
         best_score=[]
         best_dict=[]
         best_layer_breakdown=[]
@@ -825,15 +846,6 @@ def hw_worker(load):
         print('current best score :',best_score[best_idx[0]])
         tmp_hw_scores.append(best_score[best_idx[0]])
     hw_score_pool.put((hw_idx,tmp_hw_scores))
-#        if best_score[best_idx[0]] > cur_best_score:
-#            cur_best_score=best_score[best_idx[0]]
-#            cur_best_hw=tmp_hw_spec
-#            back_up_pool=[]
-#        elif best_score[best_idx[0]]>1.05*cur_best_score:
-#            back_up_pool.append(tmp_hw_spec)
-#        print('tmp_hw_spec',tmp_hw_spec)
-#        print('best hw',cur_best_hw)
-#        print('back up pool',back_up_pool)
 
 
 if not hw_score_pool.empty():

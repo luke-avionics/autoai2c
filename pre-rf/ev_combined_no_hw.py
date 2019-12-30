@@ -19,10 +19,24 @@ import scipy.io as sio
 #3. do evaluation       for each of layer's choice do a complete
 
 def eval_func(hw_spec):
+    #function to evaluate a set of hardware spec
+    #penalty= GB_VOL+PE_num*RF_VOL
     eval_val=hw_spec['gb_vol']+hw_spec['num_pe']*hw_spec['rf_vol']
     return eval_val
 
 def random_life(df_order,dnn,num_samples,stride_list,init_multiplier,hw_spec,n=200,return_best_dict=False):
+    #after smapling a loop-order, routine to optimize tiling factors to get the energy feedback
+
+
+    #df_order: input loop-order
+    #dnn: user input DNN specs
+    #num_samples: max_number of population during tiling factor optimization
+    #stride_list: stride numbers for DNN layers
+    #init_multiplier: initial population multiplier in tiling factor optimization
+    #hw_spec: input hw_spec
+    #n: number of iteration to go through in tiling factor optimization 
+    #return_best_dict: wether to return the detail results, otherwise only score(penalty) returned
+
     df_order=copy.deepcopy(df_order)
     dnn=copy.deepcopy(dnn)
     layer_wise=(type(df_order[0])==list)
@@ -48,7 +62,8 @@ def random_life(df_order,dnn,num_samples,stride_list,init_multiplier,hw_spec,n=2
             if 'ref' not in i:
                 ref_df_order.append(i)
         #generate net_arch
-        net_arch=gen_net_arch(ref_df_order,dnn)     
+        net_arch=gen_net_arch(ref_df_order,dnn)
+     
     #initial max_num pop
     ev_dict1=ev_dict(stride_list,net_arch,ref_df_order,max_pop=num_samples,true_df_order=df_order,hw_spec=hw_spec)
     #optimize for n cycles
@@ -61,7 +76,19 @@ def random_life(df_order,dnn,num_samples,stride_list,init_multiplier,hw_spec,n=2
         return score
 
 
+
+
+
 def fine_tune(best_lp_set,input_dnn,input_rf,input_stride_list,hw_spec,n=200):
+    #a more refined version of random_life, aimed to get the best tiling factors, in turn the best performance, for a loop-order set
+
+    #best_lp_set: loop-orders for each layer
+    #input_dnn: user input dnn specs
+    #input_rf: rf-noc-template to be used
+    #input_stride_list: ...
+    #hw_spec: ...
+    #n: iteration to optimize tiling factors
+
     sum_score=0
     dnn=copy.deepcopy(input_dnn)
     stride_list=copy.deepcopy(input_stride_list)
@@ -211,6 +238,7 @@ input_dnn=[\
 # [1, {'ch_out':[84,0],'ch_in':[120,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[1,0],'col_kernel':[1,0]}],\
 # [1, {'ch_out':[10,0],'ch_in':[84,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[1,0],'col_kernel':[1,0]}],\
 # ]
+
 #alexnet
 #input_dnn=[\
 #[4, {'ch_out':[96,0],'ch_in':[3,0],'batch':[4,0],'col_out':[55,0],'row_out':[55,0],'row_kernel':[11,0],'col_kernel':[11,0]}],\
@@ -414,8 +442,6 @@ hw_pool=generate_all_possible_hw(possible_hw_values)
 print('hw space size: ', len(hw_pool))
 hw_pool=filter_hw_pool(hw_pool,512*168*8+108*1024*8)
 print('hw space size after prunning: ',len(hw_pool))
-print(hw_pool[27])
-exit()
 #identify the most demanding layer
 layer_break_down=fine_tune([[0]*sum([10,10,7])]*len(input_dnn),input_dnn,rf_noc_template[0],input_stride_list,tmp_hw_spec,n=200)[2]
 most_demanding_layer=np.argmin(layer_break_down) 
@@ -708,16 +734,14 @@ def hw_worker(load):
 
 
         print(pop_list)
-        #!!!!!!!!!!!!!!!!!!!!!!!!!!!TODO WE need to remember best dict..but 
+
+
+
+
 
         dnn=input_dnn
         stride_list=input_stride_list
-        #fine tune loop order based on memory accumulation
-    #    new_ref=[]
-    #    for _ in range(len(dnn)):
-    #        new_ref.append(reference_starting_points[0])
-    #    ref_score=fine_tune(new_ref,dnn,highest_rf,stride_list,tmp_hw_spec,n=int(20))   #change back 
-    #    print('rs score: ', ref_score)
+        #fine tune loop order 
 
         best_score=[]
         best_dict=[]
@@ -741,15 +765,7 @@ def hw_worker(load):
         print('current best score :',best_score[best_idx[0]])
         tmp_hw_scores.append(best_score[best_idx[0]])
     hw_score_pool.put((hw_idx,tmp_hw_scores))
-#        if best_score[best_idx[0]] > cur_best_score:
-#            cur_best_score=best_score[best_idx[0]]
-#            cur_best_hw=tmp_hw_spec
-#            back_up_pool=[]
-#        elif best_score[best_idx[0]]>1.05*cur_best_score:
-#            back_up_pool.append(tmp_hw_spec)
-#        print('tmp_hw_spec',tmp_hw_spec)
-#        print('best hw',cur_best_hw)
-#        print('back up pool',back_up_pool)
+
 
 
 if not hw_score_pool.empty():
