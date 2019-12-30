@@ -455,9 +455,6 @@ test_child=[{'ch_out_rf': 2, 'ch_out_noc': 3, 'ch_out_gb': 16, 'ch_out_dram': 1,
 
 #test_child=[{'ch_out_rf': 1, 'ch_out_noc': 1, 'ch_out_gb': 1, 'ch_out_dram': 6, 'ch_in_rf': 1, 'ch_in_noc': 1, 'ch_in_gb': 1, 'batch_rf': 1, 'batch_dram': 1, 'col_out_noc': 1, 'col_out_dram': 28, 'row_out_rf': 28, 'row_kernel_rf': 5, 'col_kernel_noc': 5}, {'ch_out_rf': 1, 'ch_out_noc': 1, 'ch_out_gb': 1, 'ch_out_dram': 16, 'ch_in_rf': 1, 'ch_in_noc': 2, 'ch_in_gb': 6, 'batch_rf': 1, 'batch_dram': 1, 'col_out_noc': 1, 'col_out_dram': 10, 'row_out_rf': 10, 'row_kernel_rf': 5, 'col_kernel_noc': 5}, {'ch_out_rf': 1, 'ch_out_noc': 1, 'ch_out_gb': 1, 'ch_out_dram': 120, 'ch_in_rf': 1, 'ch_in_noc': 1, 'ch_in_gb': 11, 'batch_rf': 1, 'batch_dram': 1, 'col_out_noc': 1, 'col_out_dram': 1, 'row_out_rf': 1, 'row_kernel_rf': 5, 'col_kernel_noc': 5}, {'ch_out_rf': 1, 'ch_out_noc': 1, 'ch_out_gb': 1, 'ch_out_dram': 84, 'ch_in_rf': 1, 'ch_in_noc': 1, 'ch_in_gb': 120, 'batch_rf': 1, 'batch_dram': 1, 'col_out_noc': 1, 'col_out_dram': 1, 'row_out_rf': 1, 'row_kernel_rf': 1, 'col_kernel_noc': 1}, {'ch_out_rf': 1, 'ch_out_noc': 1, 'ch_out_gb': 1, 'ch_out_dram': 10, 'ch_in_rf': 1, 'ch_in_noc': 1, 'ch_in_gb': 84, 'batch_rf': 1, 'batch_dram': 1, 'col_out_noc': 1, 'col_out_dram': 1, 'row_out_rf': 1, 'row_kernel_rf': 1, 'col_kernel_noc': 1}]
 
-
-input_stride_list=[4,1,1,1,1]
-
 #print(arch_life(test_child,stride_list,tmp_hw_spec,df_order=test_looporder))
 #exit()
 
@@ -522,8 +519,6 @@ hw_pool=generate_all_possible_hw(possible_hw_values)
 print('hw space size: ', len(hw_pool))
 hw_pool=filter_hw_pool(hw_pool,512*168*8+108*1024*8)
 print('hw space size after prunning: ',len(hw_pool))
-print(hw_pool[30])
-exit()
 #df_order=arch_sample_results_df(5,\
 #                               [[9, 8, 1, 6, 2, 1, 2, 0, 1, 0, 1, 5, 3, 1, 2, 0, 0], [1, 5, 0, 3, 0, 2, 0, 0, 1, 0, 5, 0, 3, 2, 1, 1, 0], [7, 3, 5, 5, 3, 4, 0, 2, 0, 0, 2, 1, 0, 2, 0, 0, 0], [3, 8, 3, 0, 3, 0, 0, 0, 1, 0, 4, 2, 3, 2, 0, 1, 0], [8, 3, 7, 4, 3, 4, 3, 0, 0, 0, 3, 2, 3, 2, 0, 1, 0]], \
 #['row_out_rf', 'col_kernel_rf', 'ch_out_rf', 'batch_rf', 'col_out_rf', 'ref_rf_we', 'ref_rf_in', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_kernel_noc', 'ch_in_noc', 'row_out_noc', 'ch_out_noc'])
