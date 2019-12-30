@@ -682,6 +682,9 @@ print('RF templates decision finished')
 print('each hw has a corresponding rf/noc template? ', len(highest_rf_pool)==len(hw_pool))
 print('Highest rf',highest_rf_pool)
 
+#the above is to find the best template for each hw
+#the below is to fine-tune the final score for each hw under the best template
+
 def hw_worker(load):
     hw_idx=load[0]
     hw_pool=load[1]

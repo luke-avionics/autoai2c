@@ -20,6 +20,14 @@ default_hw={ \
 #############################
 
 def life_eval(actions,stride,hw_spec,df_order=None):
+    #function to query chip_estimator and get energy+latency feedback
+
+    #actions: tiling factors for a specific loop-order
+    #stride: the stride number for this CONV layer operation
+    #hw_spec: hw specs for evaluation
+    #df_order: loop-order for evaluation 
+    #           !!!!if not provided PLS provide it in chip_estimator
+    #           !!!!legacy functionality, so always try to provide specific loop-order here
     try:
         #input isolation
         input_actions=dict(actions)
@@ -29,9 +37,9 @@ def life_eval(actions,stride,hw_spec,df_order=None):
             input_df_order=None
         ene_results=simnas.sample_energy(input_actions,stride,hw_spec,input_df_order=input_df_order)
         penalty=-ene_results[0]*1e-8-ene_results[1]*100
-        print(ene_results[0],ene_results[1])
-        #print(ene_results[2])
-        #penalty=-pen_cal(ene_results)
+        #print(ene_results[0],ene_results[1])
+    #if design hw constraint exceeded, 
+    #if exceeded return extremely large penalty
     except Exception as e:
         if 'resource' in str(e):
             pass
@@ -43,9 +51,15 @@ def life_eval(actions,stride,hw_spec,df_order=None):
     
 def arch_life(child,input_stride_list,hw_spec,df_order=None):
     #evaluate the energy consumption for all layers in one network
+
+    #child: a list of tiling factors dictionary --- [{},{},{},....],each corresponding to a layer
+    #input_stride_list: a list of stride, each corresponding to a layer
+    #hw_spec: hw spec used
+    #df_order: loop-order in list of list, each inner list --- one single layer
+    
+    #return: total penalty for all layers and breakdown for each layer
     score=0
     #input isolation
-    #....
     layer_wise=(type(df_order[0])==list)
     layer_break_down=[]
     stride_list=list(input_stride_list)
@@ -64,6 +78,7 @@ def arch_life(child,input_stride_list,hw_spec,df_order=None):
     return score,layer_break_down
     
 def pop_ranking(pop_list,score_board):
+    #rank population list according to score_board, not working if directly using sorted(zip())
     #too ganky
     pop_indices=list(range(len(pop_list)))
     results = [(pop_indx,score_num) for score_num,pop_indx in sorted(zip(score_board,pop_indices),reverse=True)]
@@ -82,25 +97,27 @@ def pop_ranking(pop_list,score_board):
 #############################
     
 def lo_random_pop(layer_list=[10,7]):
+    #randomly sample a specific loop-order
+    #layer_list: denoting the number of components in each memory level, with NoC,RF levels excluded, as they are in a list pool to iterate 
+    #            SRAM(GB) level
+    #            DRAM level 
     #right now does not handle the repetitive population
-    #actions=[randint(0,3)]
     actions=[]
     for idx,size in enumerate(layer_list):
         for i in range(size-1,0,-1):
             actions.append(randint(0,i))
         actions.append(0)
-    # #sample out channels                template for df_dict sampling
-    # #kind of sucks now... need to re-code for every single new structure
-    # for i in range(2):
-        # actions.append(randint(0,4))
-    # actions.append(randint(0,8-actions[-1]-actions[-2]))
-    # actions.append(8-actions[-1]-actions[-2]-actions[-3])
     return actions
     
 #print(random_pop([7,5,4,4]))
 #exit()
 
 def lo_give_birth(input_str1,input_str2):
+    #combine two randomly generated loop-oders
+    #with possiblity:
+    #                 1. half features from str1 and half features from str2
+    #                 2. entirely from str1
+    #                 3. entirely from str2
     str1=list(input_str1)
     str2=list(input_str2)
     #random number to decide which part of the parents to inherit
@@ -114,18 +131,22 @@ def lo_give_birth(input_str1,input_str2):
     return str3
 
 def lo_mutate(input_str1,prop,layer_list=[10,7]):
+    #randomly permute some features of a input loop-oder
+    #input_str1: input loop-order
+    #prop: probability to mutate
+    #layer_list: denoting number of components in each memory level
     str1=list(input_str1)
     if random()<=prop:
-        #how many features under risk of mutation                              #currently twenty percent of features under risk of mutation
-        #plus 1: the first position decide which rf template to take
+        #how many features under risk of mutation                              #currently 25 percent of features under risk of mutation
         size=int(0.25*(sum(layer_list)))
         if size<1:
             size=1
         pos=list(range(0,sum(layer_list)))
+        #randomly pick 'size' of features
         shuffle(pos,random=random)
         pos=pos[0:size]
-        #pos=np.random.randint(len(str1),size=size)
         ref_pos=[]
+        #features number range for each feature 
         for i in layer_list:
             ref_pos+=list(range(i-1,0,-1))
             ref_pos+=[0]
@@ -137,22 +158,7 @@ def lo_mutate(input_str1,prop,layer_list=[10,7]):
     return str1
 
 
-
-rf_template=[
-            ['ch_out_rf', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_out_rf', 'ref_rf_in', 'batch_rf', 'ref_rf_we'], \
-            ['ref_rf_we','ref_rf_out','ref_rf_in'], \
-            ['ref_rf_we','ref_rf_out','ref_rf_in','col_kernel_rf','row_kernel_rf','ch_in_rf'], \
-            ['col_out_rf','row_out_rf','batch_rf','ref_rf_we','ref_rf_out','ref_rf_in'] \
-]
-noc_template=[['col_kernel_noc','row_kernel_noc','ch_in_noc','ch_out_noc'], \
-                      ['col_kernel_noc','ch_in_noc','col_out_noc','ch_out_noc'], \
-                      ['row_kernel_noc','ch_in_noc','col_out_noc','ch_out_noc'], \
-                      ['row_kernel_noc','ch_in_noc','row_out_noc','ch_out_noc'], \
-                      ['col_kernel_noc','ch_in_noc','row_out_noc','ch_out_noc'], \
-                      ['row_out_noc','col_out_noc','ch_out_noc'], \
-                      ]
-
-
+#rf_noc_template: to be decided after running pre_rf
 rf_noc_template=[ \
                  ['col_kernel_rf', 'row_out_rf', 'row_kernel_rf', 'ch_out_rf', 'ref_rf_out', 'ref_rf_in', 'ch_in_rf', 'col_out_rf', 'batch_rf', 'ref_rf_we', 'row_kernel_noc', 'ch_in_noc', 'row_out_noc', 'ch_out_noc'], \
                  ['batch_rf', 'row_kernel_rf', 'ch_out_rf', 'col_kernel_rf', 'col_out_rf', 'ref_rf_in', 'ref_rf_we', 'ch_in_rf', 'row_out_rf', 'ref_rf_out', 'row_out_noc', 'col_out_noc', 'ch_out_noc'], \
@@ -215,16 +221,13 @@ rf_noc_template=[
 #                 ['ch_out_rf', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_out_rf', 'ref_rf_in', 'batch_rf', 'ref_rf_we', 'col_kernel_noc','row_kernel_noc','ch_in_noc','ch_out_noc'], \
 #                 ['ch_out_rf', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_out_rf', 'ref_rf_in', 'batch_rf', 'ref_rf_we', 'col_kernel_noc','row_kernel_noc','ch_in_noc','ch_out_noc'], \
 #]
-#for rf in range(len(rf_template)):
-#    for noc in range(len(noc_template)):
-#        rf_noc_template.append(rf_template[rf]+noc_template[noc])
 
-
-#print(rf_noc_template[0])
-#print(len(rf_noc_template))
 
 def sample_results_df(input_actions,input_rf,layer_list=[10,7]):
-    #right now assum re_rf stay in rf level, ref_noc stays in noc level
+    #translate index fomrat loop-order to string format 
+    #input_actions: index format loop-order, output from lo_random_pop, lo_give_birth, lo_mutate
+    #input_rf: rf_noc_template to take
+    #layer_list: see above...
     actions=list(input_actions)
     df_dict ={
               #0:['col_kernel_noc', 'ch_in_noc', 'col_out_noc', 'ch_out_noc','row_kernel_noc','row_out_noc','batch_noc'], \
@@ -250,69 +253,32 @@ def sample_results_df(input_actions,input_rf,layer_list=[10,7]):
 #print(sample_results_df([2, 2, 5, 4, 0, 3, 0, 2, 0, 0, 1, 4, 3, 1, 2, 0, 0], \
 #['row_out_rf', 'col_kernel_rf', 'ch_out_rf', 'batch_rf', 'col_out_rf', 'ref_rf_we', 'ref_rf_in', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_kernel_noc', 'ch_in_noc', 'row_out_noc', 'ch_out_noc']))
 #print(sample_results_df([6, 7, 6, 4, 1, 1, 0, 1, 0, 0, 6, 5, 4, 3, 2, 1, 0],['ch_out_rf', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_out_rf', 'ref_rf_in', 'batch_rf', 'ref_rf_we', 'col_kernel_noc','row_kernel_noc','ch_in_noc','ch_out_noc']))
-#for i in range(10000):
-#    new_child=lo_give_birth(lo_random_pop(),lo_random_pop())        #will try no birth only mutate next                          
-#    new_child=lo_mutate(new_child,0.5)
-#    sample_results_df(new_child,rf_noc_template[0])
-
-
-#print(len(lo_random_pop()))
-#for i in range(1000):
-#    if len(lo_random_pop())!=17:
-#        print('error')
-#        break
-#test_child=lo_random_pop()
-#test_child2=lo_random_pop()
-#for i in range(1000):
-#    lo_give_birth(lo_random_pop(),lo_random_pop())
-#for i in range(1000):
-#    lo_mutate(lo_random_pop(),1)
-#for i in range(1000):
-#    sample_results_df(lo_random_pop(),rf_noc_template[0])
-#print(sample_results_df(lo_random_pop(),rf_noc_template[0]))
-#print(sample_results_df(lo_random_pop(),rf_noc_template[0]))
-#print(len(sample_results_df(lo_random_pop(),rf_noc_template[0])))
-#print('test_finished')
-
 
 def arch_sample_results_df(dnn_layer_num,input_actions,input_rf,layer_list=[10,7]):
+    #translate layers of input loop-order to string format
     input_actions=copy.deepcopy(input_actions)
     arch_df=[]
     for i in range(dnn_layer_num):
         arch_df.append(sample_results_df(input_actions[i],input_rf,layer_list=layer_list))
     return arch_df
-#        
+        
 
+#get the final results loop-order post_rf
 #print(arch_sample_results_df(5,\
 #                              [[8, 5, 3, 2, 5, 2, 3, 1, 0, 0, 5, 5, 1, 2, 0, 1, 0], [5, 3, 2, 4, 4, 4, 3, 1, 1, 0, 6, 3, 4, 1, 2, 0, 0], [3, 0, 0, 4, 1, 1, 1, 2, 0, 0, 5, 1, 0, 1, 0, 1, 0], [6, 7, 7, 5, 4, 4, 0, 0, 0, 0, 3, 1, 0, 3, 0, 0, 0], [8, 0, 0, 0, 0, 1, 0, 1, 1, 0, 5, 2, 2, 1, 0, 0, 0]],\
 #                            ['row_out_rf', 'col_kernel_rf', 'ref_rf_out', 'row_kernel_rf', 'col_out_rf', 'batch_rf', 'ref_rf_we', 'ch_out_rf', 'ch_in_rf', 'ref_rf_in', 'row_kernel_noc', 'ch_in_noc', 'row_out_noc', 'ch_out_noc']))
 
 def arch_lo_random_pop(dnn_layer_num,layer_list=[10,7]):
+    #just leave it 
     arch_lo_pop=[]
     for _ in range(dnn_layer_num):
         arch_lo_pop.append(lo_random_pop(layer_list=layer_list))
     return arch_lo_pop
     
 
-###############################
-#df_config_dict specific
-###############################
-
 #######################
 #layer level util func
 #######################
-# def pop_ranking(pop_list,score_board):
-    # #too ganky
-    # pop_indices=list(range(len(pop_list)))
-    # results = [(pop_indx,score_num) for score_num,pop_indx in sorted(zip(score_board,pop_indices),reverse=True)]
-    # pop_indices=[results[x][0] for x in list(range(len(results)))]
-    # tmp_pop=[]
-    # #maybe can get rid of the deepcopy
-    # for i in range(len(pop_list)):
-        # tmp_pop.append(pop_list[pop_indices[i]])
-    # pop_list=copy.deepcopy(tmp_pop)   
-    # score_board=[results[x][1] for x in list(range(len(results)))]
-    # return pop_list,score_board
 #find the factors of a number
 def r_factors(x):
     #find the factors of a number
@@ -328,6 +294,12 @@ def diff_cal(factors):
     return diff_sum
         
 def factor_n(x,n=3,flexible_factor=1):
+    #return the factor combo of length n for number x
+    #flexible number:
+    #               return factor combo of length n for number [x,flexible_factor)
+    #               with requirement that the factors in in factor combo can not differ too much which is bad for resource partition
+
+
     #force one if n==1
     if n==1:
         flexible_factor=1
@@ -336,22 +308,21 @@ def factor_n(x,n=3,flexible_factor=1):
     input=True
     result=[]
     for _ in range(flexible_factor):
-        #return factors of x, with length 3
+        #return factors of x
         factor_list=r_factors(x)
         num=factor_list[-1]
         tmp_list=[]
         for i in factor_list:
             for _ in range(n):
                 tmp_list.append(i)
-        # Get all combinations of factor_list repeated 3 times
-        # and length 3 
+        # Get all combinations of factor_list
+        # and length n
         comb = combinations(tmp_list, n) 
-        # Print the obtained combinations 
         for i in list(comb):
             mult=1
             for f in i:
                 mult*=f
-            if mult==num and (i not in result):                 #not in operation!!! extremely slow!!!!!
+            if mult==num and (i not in result):               
                 if input:
                     result.append(i)
                 else:
@@ -368,6 +339,7 @@ def factor_n(x,n=3,flexible_factor=1):
     return result
 
 def permute_factor(input_factor_list):
+    #permute the order within each factor in the factor_list
     #input  isolation
     factor_list=copy.deepcopy(input_factor_list)
     result=[]
@@ -375,12 +347,22 @@ def permute_factor(input_factor_list):
         perm = permutations(f)     
         # Print the obtained permutations                        
         for i in list(perm): 
-            if i not in result:                             #not in operation!!! extremely slow!!!!!
+            if i not in result:                             
                 result.append(i)
     return result
 
 
 def random_pop_dict(config_dict,df_order,factor_list_dict):                      #ideally pop should not be a complete dict
+    #randomly sample tiling factor combo for a specific loop-order
+
+    #config_dict: with each key representing the data dimension: ch_in, ch_out,.... available
+    #             with values representing the entire size of this dimension and how many levels we will tiling them into
+    #df_order: loop-order 
+    #factor_list_dict: possible tiling factor combos for each key in config_dict,
+    #                  with value in list format representing factor combo of lengh = values in config_dict
+
+
+    
     #########################################                                          #it adds up too much computation                                                     
     #the reason we did not fuse factor list into random pop
     #is that, we dont want to do all the permutation and ganky
@@ -411,6 +393,8 @@ def random_pop_dict(config_dict,df_order,factor_list_dict):                     
 
     
 def give_birth(str1,str2,config_dict):
+    #combine or inherit the features of two tiling factos combo
+
     str3={}
     keys=list(config_dict.keys())
     #random number to decide which part of the parents to inherit
@@ -440,6 +424,7 @@ def give_birth(str1,str2,config_dict):
 
 
 def mutate(str1,prop,config_dict,df_order,factor_list_dict):
+    #with prop possiblity to randomly permute some features of a given tiling factor
     if random()<prop:
         keys=list(config_dict.keys())
         #currently only mutate one position
@@ -458,62 +443,15 @@ def mutate(str1,prop,config_dict,df_order,factor_list_dict):
 #######################
 #arch level util func
 #######################
-def sample_noc(input_arch_config_dict,input_df_order):                                #currently noc design fixing does not apply to kernel size
-    #input isolation
-    arch_config_dict=copy.deepcopy(input_arch_config_dict)
-    df_order=copy.deepcopy(input_df_order)
-    #determine samllest value at each level
-    cf_list={}        
-    for indx,layer in enumerate(arch_config_dict): 
-        for key in layer[1].keys():
-            if indx==0:
-                cf_list[key]=r_factors(layer[1][key][0])
-            else:
-                f_list=list(set(cf_list[key]).intersection(r_factors(layer[1][key][0])))
-                cf_list[key]=f_list
-    noc={}
-    for key in cf_list.keys():
-        for sub_key in df_order:
-            if (key in sub_key) and ('noc' in sub_key):
-                f_list=cf_list[key]
-                noc[key]=f_list[randint(0,len(f_list)-1)]
-                break
-    return noc
-
-def modify_param_for_noc(arch_config_dict,noc):
-    for indx,layer in enumerate(arch_config_dict):
-        for key in layer[1].keys():
-            if key in noc.keys():
-                if arch_config_dict[indx][1][key][0]%noc[key]==0:
-                    val=int(arch_config_dict[indx][1][key][0]/noc[key])
-                else:
-                    val=arch_config_dict[indx][1][key][0]
-                    noc[key]=1
-                arch_config_dict[indx][1][key]=(val,arch_config_dict[indx][1][key][1]-1)
-    return arch_config_dict,noc
-
-
-def merge_noc(child,noc):
-    #input isolation                                                                ######################
-    #......
-    
-    #is python call by values
-    tmp_child=[]
-    #update noc keys
-    tmp_noc={}
-    for key in noc.keys():
-        tmp_noc[key+'_noc']=noc[key]
-    #merge noc into config in each layer
-    for i,layer in enumerate(child):
-        #working around for concatenating dict without modifying original child
-        tmp_child.append({})
-        tmp_child[-1].update(child[i])
-        tmp_child[-1].update(tmp_noc)
-    return tmp_child
-        
+ 
 
 def arch_factor_list_dict(input_arch_config_dict):
-    #input_arch_config_dict: net arch
+    #generate all possible tiling factor combo for all layers 
+
+    #input_arch_config_dict:
+    #                       with each outer list representing each layer
+    #                       with each dict within is a config_dict defined in random_pop_dict
+
     #input isolation
     arch_config_dict=copy.deepcopy(input_arch_config_dict)
     arch_factor_list=[]
@@ -530,6 +468,9 @@ def arch_factor_list_dict(input_arch_config_dict):
     return arch_factor_list
 
 def arch_random_pop(input_arch_config_dict,input_df_order,input_arch_factor_list):
+    #randomly sample tiling factors for layers of CONV
+    #while random_pop_dict defined above is for single layer
+
     #input isolation
     arch_config_dict=copy.deepcopy(input_arch_config_dict)
     df_order=copy.deepcopy(input_df_order)
@@ -566,6 +507,11 @@ def arch_give_birth(input_str1,input_str2,input_arch_config_dict):
     return str3
     
 def arch_mutate(str1,prop, arch_factor_list,mutate_pos_num=4):
+    #randomly permute input tiling factor combo features in all-layer scope
+    #prop: probability of mutation
+    #arch_factor_list: tiling factors choices pool
+    #mutate_pos_num: number of position under potential mutation
+
     #max number of positions within one layer
     max_num=len(list(arch_factor_list[0].keys()))
     offset=0
@@ -602,6 +548,9 @@ def arch_mutate(str1,prop, arch_factor_list,mutate_pos_num=4):
 ####################
 
 def multi_p(func,args,output_q,num_worker_threads,dump_yard):
+    #routine to distribute workers to multi cores
+    #BETTER leave it
+
     #length of args has to be the multiple of num_worker_threads
     args=list(args)
     run_ites=int((len(args))//num_worker_threads)
@@ -627,6 +576,8 @@ def multi_p(func,args,output_q,num_worker_threads,dump_yard):
 #combined level
 ###################################
 def gen_net_arch(df_order,dnn):
+    #convert a dnn dimension input (from user) to a arch_config_dict format, according to given df_order
+    #basically specfying how many levels of memory we want to tile the data dimnension to
     net_arch=copy.deepcopy(dnn)
     for i in df_order:
         if 'ch_out' in i:
@@ -655,6 +606,9 @@ def gen_net_arch(df_order,dnn):
 
 
 #following func assume 3.7's order preservation in dict
+
+#prevent overflow induced hanging in multi processing 
+#so we need to streamline the communication between each process
 def compress_dict(input_df_config_dict):
     df_config_dict=copy.deepcopy(input_df_config_dict)
     compressed=[]
