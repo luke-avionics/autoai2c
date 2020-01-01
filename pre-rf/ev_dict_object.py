@@ -25,7 +25,47 @@ class ev_dict():
         
         #generate factor list according to a certain config_dict
         self.arch_factor_list=arch_factor_list_dict(self.net_arch)
-        
+        self.space_size=1
+        #calculate the space size 
+        for layer in self.arch_factor_list:
+            for data_dim in layer:
+                self.space_size*=len(layer[data_dim])   
+
+    def exhuastive_search(self):
+        # !!!  can now only be used when passed with one single layer of CONV
+        # !!!  assume 7 data dim
+
+        best=-9000000000000.0
+        print_freq=100
+        for layer in self.arch_factor_list:
+            data_dims=list(layer.keys())
+            #number of choices for each dimension
+            data_dim_limits=[]
+            freq_ctr=0
+            for d0 in layer[data_dims[0]]:
+                for d1 in layer[data_dims[1]]:
+                    for d2 in layer[data_dims[2]]:                  
+                        for d3 in layer[data_dims[3]]:
+                            for d4 in layer[data_dims[4]]:
+                                for d5 in layer[data_dims[5]]:
+                                    for d6 in layer[data_dims[6]]:
+                                        freq_ctr+=1
+                                        df_dict={}
+                                        value_list=[d0,d1,d2,d3,d4,d5,d6]
+                                        for i in range(7):
+                                            value=value_list[i]
+                                            key=data_dims[i]
+                                            ctr=0
+                                            for sub_key in self.df_order[0]:
+                                                if key in sub_key:
+                                                    df_dict[sub_key]=value[ctr]
+                                                    ctr+=1 
+                                        tmp=arch_life([df_dict],self.stride_list,self.hw_spec,df_order=self.true_df_order)[0]
+                                        if tmp>best:
+                                            best=tmp
+                                        if freq_ctr%print_freq==0:
+                                            print(best)
+ 
     def search(self,n=10000,mutate_init=False,init_multiplier=3):
         pop_list=[]
         #generate initial population
@@ -72,8 +112,9 @@ class ev_dict():
                 if ((size/2)%num_worker_threads)!=0:
                     size=int(math.ceil((size/2.0)/num_worker_threads)*num_worker_threads*2)
                 #print('new born size:',size)
-                pos=list(range(0,size))
+                pos=list(range(0,size*2))   #encourage exploration
                 shuffle(pos,random=random)
+                pos=pos[0:size]
 
                 score_pair=Queue()
                 #pos needs to be changed
