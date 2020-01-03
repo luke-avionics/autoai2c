@@ -80,3 +80,34 @@ The following will be an example to generate AlexNet example (on ***eic-cpu serv
 
 
 
+
+
+
+***The following will be general outline description of the code*** 
+1. pre-rf and post-rf share most of the code except some setup in **ev_util.py** and **ev_combined_no_hw.py** 
+    - pre-rf will decide the hardware specs and rf_noc_template pool to be fined tuned later in post-rf 
+2. **ev_util.py** is where most of the utility functions reside while the rest of them can be found in corresponding **ev_combined_no_hw.py** 
+3. **ev_dict_object.py** will be the capsulated code structure(using genetic) to optimize the **tiling factors**, given **hardware specs**, **rf_noc_template** and **looporders** 
+    - It is a very clear illusration of 
+        - genetic algorithm 
+        - distribution of tasks to different cores 
+    - The feedback is realized from direct querying chip_estimator( **test_for_eyeriss.py** ) 
+        - see arch_life(...) and life_eval(...) for more info 
+4. **ev_combined_no_hw.py** is built upon the code of **ev_dict_object.py**, to find the most suitable **hardware specs**, **rf_noc_template**, **looporders** and final fine tuning of **tiling factors** 
+    - **hardware specs** will be firstly filtered to eliminate the unreasonable choices (too small or above the budget), and then chosen through the coarse optimization of the rest of the parameters 
+        - it will be done on the most_demanding_layer identified earlier 
+    - **rf_noc_template**: because this set of parameters are fixed for all layers, it will be tricky to combine it with the rest of the layerwise parameters --> without this set of parameters, we can simply find the best layerwise parameters for each layer due to the greedy nature. 
+        - Therefore, I intend to separate them: Firstly, shrinking the thousands of choices of **rf_noc_template** to a pool with size: currently the number of input DNN layers. Then, do a exhaustive  iteration for on top of the optimization for the layerwise parameters 
+        - To form the pool, I found the best **rf_noc_template** for each layer: see ***rf-noc_rf_template for each layer***  above for more info. 
+    - **looporders** optimization is just a more complicated(messy) version of **ev_dict_object.py**, with core difference in feedback functions: 
+        - random_life(...)   in **ev_combined_no_hw.py** 
+        - fine_tune(...)     in **ev_combined_no_hw.py** 
+        - But the whole structure is staged for accommodation of the above two optimization 
+    - **tiling factors** fine_tuning: when everything is fixed, tiling factors are further optimized more thoroughly: increasing cycle parameter in fine_tune(...)
+5. **test_for_eyeriss.py** is the config for chip_estimator, where we set technology dependent variables and the optimizer code query from. 
+6. The rest of the code are mostly supporting library for the chip_estimator 
+
+
+
+
+
