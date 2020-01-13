@@ -48,6 +48,20 @@ def life_eval(actions,stride,hw_spec,df_order=None):
         #print('child:',actions)
         penalty=-9e12                                  #very strong penalty to over budget
     return penalty
+
+actions= {'ch_out_rf':16, 'ch_in_rf':2, 'row_kernel_rf':5, 'ref_rf_we':64, 'row_out_rf':27, 'ref_rf_in':16, 'batch_rf':1,\
+            'ref_rf_out':64, 'col_kernel_noc':5, 'ch_in_noc':1, 'col_out_noc':27, 'ch_out_noc':1,\
+            'ref_gb_we':64, 'ch_out_gb':4, 'ref_gb_in':64, 'ch_in_gb':24,\
+            'ref_gb_out':64, 'col_out_dram':1, 'ch_out_dram':4, 'batch_dram':4,\
+            }    
+stride=1
+hw_spec=default_hw
+df_order=['ch_out_rf', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_out_rf', 'ref_rf_in', 'batch_rf', 'ref_rf_we',\
+                'col_kernel_noc', 'ch_in_noc', 'col_out_noc', 'ch_out_noc',\
+                'ref_gb_we', 'ch_out_gb', 'ref_gb_in',  'ch_in_gb', 'ref_gb_out', \
+                'col_out_dram', 'ch_out_dram', 'batch_dram'\
+               ]
+life_eval(actions,stride,hw_spec,df_order=df_order)
     
 def arch_life(child,input_stride_list,hw_spec,df_order=None):
     #evaluate the energy consumption for all layers in one network
