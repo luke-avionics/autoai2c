@@ -42,7 +42,7 @@ The following will be an example to generate AlexNet example (on ***eic-cpu serv
 7. go to the log file 
     - search for **Highest rf**, note down the template
     - in the end of the log, search for **best loop order**, and note it down
-    - go to line 212 of **ev_util.py**, use sample_results_df() to translate results in string format
+    - go to line 227 of **ev_util.py**, use sample_results_df() to translate results in string format
         - replace the first argument with **best loop order** you note down
         - replace the second argument with **Highest rf** you note down
         - note down the output as one element of **rf_noc_template** used later
@@ -54,7 +54,7 @@ The following will be an example to generate AlexNet example (on ***eic-cpu serv
 
 ***looporder+tiling factors (post_rf)***
 1. go to **post_rf** folder
-2. open *ev_util.py*, and go to line 224, add/replace **rf_noc_template** with the new one comprising the elements you note down in the previous part
+2. open *ev_util.py*, and go to line 219, add/replace **rf_noc_template** with the new one comprising the elements you note down in the previous part
     - one tip to encourage more exploration, is to gradually accumlate templates from mulitple runs and change the multiprocessing workload later
     - But **ignore** it for now 
 3. open *ev_combined_no_hw.py*, go to line 566, make sure the layer indexing is commented out, we want to do all layer optimization here
@@ -71,7 +71,7 @@ The following will be an example to generate AlexNet example (on ***eic-cpu serv
         - its corresponding hw index in **hardware-scores** will also denote the ***final best set of hw_spec***
     - right above the line you searched and found, note down the **best loop order** and **best config dict**
     - search for **Highest rf**, and note down the template element(the inner list) whose index corresponding to the best peforming hw_spec's you find in **hardware-scores** 
-    - go to line 266 of *ev_util.py*, use *arch_sample_results_df()* to get the final loop-orders for all layers in string format.
+    - go to line 281 of *ev_util.py*, use *arch_sample_results_df()* to get the final loop-orders for all layers in string format.
         - replace the first argument with the number of layers you consider
         - replace the second argument with **best loop order** you found
         - replace the third argument with the template element you found in **Highest rf**, not the entire **Highest rf** !!!!
