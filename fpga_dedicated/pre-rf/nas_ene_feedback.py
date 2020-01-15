@@ -6,15 +6,16 @@ from ev_dict_object import *
 
 def ene_lat_qury(dnn, layer_num, cycles=200):
     #hw settup
-    hw_spec={ \
-    'gb_vol':108*1024*8, \
-    'rf_vol':512*8, \
-    'num_pe':168, \
-    'num_rf':168
-    }
+    hw_spec={'gb_vol': 1048576, 'rf_vol': 512, 'num_pe': 1024, 'num_rf': 1024}
+   # hw_spec={ \
+   # 'gb_vol':108*1024*8, \
+   # 'rf_vol':512*8, \
+   # 'num_pe':168, \
+   # 'num_rf':168
+   # }
+
     df_order_all_lyaers=[['row_out_noc', 'col_out_noc', 'ch_out_noc', 'row_out_gb', 'col_kernel_gb', 'ch_out_gb', 'row_kernel_gb', 'col_out_gb', 'ref_gb_in', 'batch_gb', 'ref_gb_we', 'ch_in_gb', 'ref_gb_out', 'col_kernel_dram', 'row_out_dram', 'col_out_dram', 'ch_out_dram', 'row_kernel_dram', 'batch_dram', 'ch_in_dram'], ['row_out_noc', 'col_out_noc', 'ch_out_noc', 'row_out_gb', 'ch_out_gb', 'batch_gb', 'row_kernel_gb', 'col_out_gb', 'col_kernel_gb', 'ref_gb_in', 'ref_gb_we', 'ch_in_gb', 'ref_gb_out', 'row_kernel_dram', 'col_kernel_dram', 'col_out_dram', 'row_out_dram', 'ch_out_dram', 'batch_dram', 'ch_in_dram'], ['row_out_noc', 'col_out_noc', 'ch_out_noc', 'col_out_gb', 'col_kernel_gb', 'batch_gb', 'ref_gb_we', 'row_out_gb', 'ch_out_gb', 'row_kernel_gb', 'ref_gb_in', 'ch_in_gb', 'ref_gb_out', 'batch_dram', 'col_kernel_dram', 'ch_out_dram', 'row_kernel_dram', 'col_out_dram', 'row_out_dram', 'ch_in_dram'], ['row_out_noc', 'col_out_noc', 'ch_out_noc', 'row_out_gb', 'ch_in_gb', 'col_out_gb', 'batch_gb', 'col_kernel_gb', 'row_kernel_gb', 'ref_gb_we', 'ref_gb_out', 'ch_out_gb', 'ref_gb_in', 'ch_out_dram', 'row_kernel_dram', 'batch_dram', 'row_out_dram', 'ch_in_dram', 'col_kernel_dram', 'col_out_dram'], ['row_out_noc', 'col_out_noc', 'ch_out_noc', 'row_out_gb', 'row_kernel_gb', 'ch_in_gb', 'col_kernel_gb', 'batch_gb', 'ref_gb_we', 'ref_gb_out', 'ch_out_gb', 'ref_gb_in', 'col_out_gb', 'ch_in_dram', 'row_kernel_dram', 'col_kernel_dram', 'batch_dram', 'row_out_dram', 'col_out_dram', 'ch_out_dram']]
     
-    #best loop order [[5, 4, 1, 5, 4, 1, 2, 0, 0, 0, 5, 4, 0, 0, 2, 0, 0], [5, 1, 4, 5, 4, 3, 1, 0, 0, 0, 6, 5, 0, 3, 0, 0, 0], [7, 4, 5, 0, 3, 0, 2, 0, 0, 0, 2, 4, 1, 3, 0, 1, 0], [5, 3, 5, 4, 3, 3, 0, 2, 0, 0, 1, 5, 1, 2, 1, 1, 0], [5, 7, 3, 3, 3, 0, 3, 0, 0, 0, 3, 5, 4, 2, 2, 0, 0]]
 
     df_order=df_order_all_lyaers[layer_num]
     dnn=[dnn[layer_num]]    
