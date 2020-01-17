@@ -88,7 +88,9 @@ class ev_dict():
                 output_q.put((i,arch_life(merged_child,self.stride_list,self.hw_spec,df_order=self.true_df_order)[0]),False)
             except Empty:
                 raise Exception("There is no room in the queue in initial tiling factor evaluation stage")
-        num_worker_threads=int(multiprocessing.cpu_count())
+        #num_worker_threads=int(multiprocessing.cpu_count())
+        #TODO: Will over load cpu
+        num_worker_threads=160        
         multi_p(func1,args1,output_q,num_worker_threads,dump_yard)
         dump_yard=sorted(dump_yard)
         for idx in range(len(dump_yard)):
@@ -100,14 +102,16 @@ class ev_dict():
             #if not saturate birth and mutate
             if len(pop_list) < self.max_pop:
                 #distributing tasks to cores
-                num_worker_threads=int(multiprocessing.cpu_count())
+                #num_worker_threads=int(multiprocessing.cpu_count())
+                #TODO: Will over load cpu                
+                num_worker_threads=160
                 #print('generating pop')
                 #size of newly generated population
                 size=int(2*self.dying_rate*(self.max_pop))                                   # right now birth control is through max_pop; can be done through current pop
                 if size%2 !=0:
                     size+=1
                 #no task imbalance among cores
-                if num_worker_threads > (size/2):
+                if num_worker_threads >= (size/2):
                     num_worker_threads=int(size/2)
                 if ((size/2)%num_worker_threads)!=0:
                     size=int(math.ceil((size/2.0)/num_worker_threads)*num_worker_threads*2)
