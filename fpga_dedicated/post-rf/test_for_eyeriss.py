@@ -17,6 +17,39 @@ from simulator_eyeriss_scaletoli_debug import *
 from cnn_load import *
 
 
+def gb_out_consumption(df_order, df_config_dict):
+    consumption=1    
+    for i in range(len(df_order)):
+        if df_order[i] =="ref_gb_out":
+            return consumption
+        elif "ch_out" in df_order[i] or "batch" in df_order[i] or "col_out" in df_order[i] or "row_out" in df_order[i] :
+            consumption*=df_config_dict[df_order[i]]
+    return consumption
+
+
+
+def gb_in_consumption(df_order, df_config_dict, stride):
+    consumption=1    
+    for i in range(len(df_order)):
+        if df_order[i] =="ref_gb_in":
+            return consumption
+        elif "col_out" in df_order[i] or  "row_out" in df_order[i] or "ch_in" in df_order[i] or "batch" in df_order[i]:
+            consumption*=df_config_dict[df_order[i]]
+    consumption*= stride
+    return consumption
+
+
+def gb_we_consumption(df_order, df_config_dict):
+    consumption=1    
+    for i in range(len(df_order)):
+        if df_order[i] =="ref_gb_we":
+            return consumption
+        elif "kernel" in df_order[i] or "batch" in df_order[i] or "ch" in df_order[i]:
+            consumption*=df_config_dict[df_order[i]]
+    return consumption
+
+
+
 def memory_consumption(df_order, df_config_dict,stride):
     df_order,df_config_dict=copy.deepcopy(df_order),copy.deepcopy(df_config_dict)
     #we consumption
@@ -440,5 +473,54 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,input_df_order=None):
                                            'E_gb_to_noc':E_gb_to_noc/opr_conv.energy,\
                                            'E_noc_to_rf':E_noc_to_rf/opr_conv.energy,\
                                            'E_rf_to_alu':E_rf_to_alu/opr_conv.energy}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#test_df_order=['ch_out_rf', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_out_rf', 'ref_rf_in', 'batch_rf', 'ref_rf_we',\
+#                'col_kernel_noc', 'ch_in_noc', 'col_out_noc', 'ch_out_noc',\
+#                'ref_gb_we', 'ch_out_gb', 'ref_gb_in',  'ch_in_gb', 'ref_gb_out', \
+#                'col_out_dram', 'ch_out_dram', 'batch_dram'\
+#               ]
+#test_df_config_dict={'ch_out_rf':16, 'ch_in_rf':2, 'row_kernel_rf':5, 'ref_rf_we':64, 'row_out_rf':27, 'ref_rf_in':16, 'batch_rf':1,\
+#            'ref_rf_out':64, 'col_kernel_noc':5, 'ch_in_noc':1, 'col_out_noc':27, 'ch_out_noc':1,\
+#            'ref_gb_we':64, 'ch_out_gb':4, 'ref_gb_in':64, 'ch_in_gb':24,\
+#            'ref_gb_out':64, 'col_out_dram':1, 'ch_out_dram':4, 'batch_dram':4,\
+#            }
+#stride=1
+
+#print(gb_out_consumption(test_df_order,test_df_config_dict))
+#print(gb_in_consumption(test_df_order,test_df_config_dict,stride))
+#print(gb_we_consumption(test_df_order,test_df_config_dict))
+#tmp_hw_spec={ \
+#    'gb_vol':96*1024*8, \
+#    'rf_vol':512*8, \
+#    'num_pe':168, \
+#    'num_rf':168
+#}
+#sample_energy(test_df_config_dict,1,tmp_hw_spec,input_df_order=test_df_order);
+
+
+
+
+
+
+
+
+
+
+
 
 
