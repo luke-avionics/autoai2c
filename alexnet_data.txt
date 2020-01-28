@@ -1,0 +1,81 @@
+num_adder = 4 # the number of adders in each PE  # set by Yang 7/12/2019, 16-bit adder = 4 * 4-bit adder ? actually
+num_mul = 16 # the number of multipliers in each PE  # set by Yang 7/12/2019, 16-bit mul = 16 * 4-bit adder ?
+bits_adder = 4 # the precision for the adder, don't change this one
+bits_mul = 4 # the precision for the multiplier, don't change this one
+#65 nm
+#    e_adder = 1.0/68 # unit energy for each adder operation
+#    e_mul = 1.0/17 # unit energy for each multiplier operation  # set by Yang 7/12/2019, 1 MAC = 1 = 4 * E_add + 16 * E_mul
+#28 nm
+e_adder = 1.0/68*1.6
+e_mul=1.0/17*1.6
+freq_pe = 250e6*4 # frequency for the PE  # set by Yang 7/12/2019
+cycles_add = 1.0 # cycles needed for each adder operation  # set by Yang 7/12/2019
+cycles_mul = 2.0 # cycles needed for each multiplier operation  # set by Yang 7/12/2019
+
+dram_bw = 64 # the bitwidth for dram (bits)  # set by Yang 7/12/2019, not sure
+gb_bw = 64 # the bitwidth for global buffer (bits)
+noc_bw = 144*num_pe # the bitwidth for noc (bits)
+#tpu ws
+noc_bw = 144*num_pe # the bitwidth for noc (bits)
+rf_bw = 64 # the bitwidth for rf (bits)
+
+freq_dram = 90e6
+freq_gb = 250e6*4
+freq_noc = 250e6*4
+freq_rf = 250e6*4
+
+
+
+
+{'gb_vol': 524288 bit, 'rf_vol': 1024 bit, 'num_pe': 1024, 'num_rf': 1024}
+
+
+
+
+
+##################################
+DRAM
+##################################
+For (N1) Batch1          1
+    For (C1) ch_in1      1
+        For (E1) row_out1:      1
+             For (M1) ch_out1:  1
+                For (F1) col_out1:  7 
+                    For (S1) col_kernel0:  1
+                        For (R1) row_kernel0:   1
+                 
+##################################
+SRAM
+##################################
+            For (E2) row_out2:      7
+            --------------------------------------------refresh_kernel_sram 
+                For (C2) ch_in2:   1
+                    For (N2) batch2:    2
+                        For (F2) col_out2:     2
+                            For (M2) ch_out2:  1
+                            -----------------------------------------------------------refresh_output_sram
+                            -----------------------------------------------------------refresh_input_sram
+                                For (S2) col_kernel2:  1
+                                    For (R2) row_kernel2:  11
+                                
+##################################
+PE array
+##################################
+                    Parallel For (R3) row_out3:    8
+                    Parallel For (F3) col_out3:    1
+                    
+                    Parallel For (M3) ch_out3:     32
+###################################
+RF inner PE
+###################################
+                        For (C0) ch_in0:    3
+                        -----------------------------------------------------------refresh_input_rf
+                        ----------------------------------------------------------refresh_output_rf
+                            For (S0) col_kernel0:  11
+                                For (M0) ch_out0:  3
+                                --------------------------------------------------------refresh_kernel_rf
+                                For (N0) batch0:   2
+                                    For (E0) row_out0: 1
+                                        For (F0) col_out0:  4
+                                            For (R0) row_kernel0:   11
+

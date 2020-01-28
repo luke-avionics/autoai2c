@@ -40,7 +40,7 @@ def life_eval(actions,stride,hw_spec,df_order=None):
         ene_results=simnas.sample_energy(input_actions,stride,hw_spec,input_df_order=input_df_order)
         #weighted sum equation to fuse energy and latency
         #the first is ene; the secon is latency 
-        print(ene_results[1])
+        #print(ene_results[1])
         penalty=-ene_results[0]*1e-8-ene_results[1]*100
     #if design hw constraint exceeded, 
     #if exceeded return extremely large penalty

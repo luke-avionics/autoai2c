@@ -4,7 +4,7 @@ from ev_dict_object import *
 
 
 
-def ene_lat_qury(dnn, cycles=200):
+def ene_lat_qury(dnn, cycles=50):
     #hw settup
     hw_spec={ \
     'gb_vol':108*1024*8, \
