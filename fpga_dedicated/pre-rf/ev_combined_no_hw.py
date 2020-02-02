@@ -546,8 +546,7 @@ most_demanding_layer=np.argmin(layer_break_down)
 print('most demanding layer is: ',most_demanding_layer)
 #cycle_scaling=0.1         #change back
 #mutation_cycle_scaling=0.1
-input_dnn=[input_dnn[most_demanding_layer]]
-input_stride_list=[input_stride_list[most_demanding_layer]]
+
 
 
 #generate hardware space
@@ -569,8 +568,8 @@ back_up_pool=[]
 
 #hw_pool=copy.deepcopy(hw_pool[0:len(hw_pool)//5])
 hw_pool=copy.deepcopy(hw_pool) #change back from hw
-hw_worker_scaling=0.25
-
+#11,1
+hw_pool=copy.deepcopy([hw_pool[40],hw_pool[38],hw_pool[34],hw_pool[30],hw_pool[39]])
 highest_rf_pool=[]
 for tmp_hw_spec in hw_pool:
     def search(input_rf,cycle_scaling,mutation_cycle_scaling):
@@ -721,9 +720,35 @@ for tmp_hw_spec in hw_pool:
                [3,list(range(3,4))], \
                [4,list(range(4,5))], \
                [5,list(range(5,6))], \
-              ]
+]
 
 
+
+#    work_load=[[0,list(range(0,1))], \
+#               [1,list(range(1,2))], \
+#               [2,list(range(2,3))], \
+#               [3,list(range(3,4))], \
+#               [4,list(range(4,5))], \
+#               [5,list(range(5,6))], \
+#               [6,list(range(6,7))], \
+#               [7,list(range(7,8))], \
+#               [8,list(range(8,9))], \
+#               [9,list(range(9,10))], \
+#               [10,list(range(10,11))], \
+#               [11,list(range(11,12))], \
+#               [12,list(range(12,13))], \
+#               [13,list(range(13,14))], \
+#               [14,list(range(14,15))], \
+#               [15,list(range(15,16))], \
+#               [16,list(range(16,17))], \
+#               [17,list(range(17,18))], \
+#               [18,list(range(18,19))], \
+#               [19,list(range(19,20))], \
+#               [20,list(range(20,21))], \
+#               [21,list(range(21,22))], \
+#               [22,list(range(22,23))], \
+#               [23,list(range(23,24))], \
+#]
 
     processes = [multiprocessing.Process(target=worker_rf_noc_template, args=([load])) for load in work_load]
 
@@ -765,7 +790,7 @@ def hw_worker(load):
     for sub_hw_idx, tmp_hw_spec in enumerate(hw_pool):
         highest_rf=highest_rf_pool[hw_idx*len(hw_pool)+sub_hw_idx]   
         #highest_rf=rf_noc_template[0]           #change back from hw
-        results=search(highest_rf,1*hw_worker_scaling,1*hw_worker_scaling) #change back from hw
+        results=search(highest_rf,1,1) #change back from hw
         invalid_hw_design=results[1]
         best_pop_cluster=results[2]
         if invalid_hw_design:
@@ -794,7 +819,7 @@ def hw_worker(load):
         best_layer_breakdown=[]
         for i in pop_list[0:k]:
             print(i)
-            bscore=fine_tune(i,dnn,highest_rf,stride_list,tmp_hw_spec,n=int(250*hw_worker_scaling))   #change back from hw
+            bscore=fine_tune(i,dnn,highest_rf,stride_list,tmp_hw_spec,n=int(250))   #change back from hw
             best_score.append(bscore[0])
             best_dict.append(bscore[1])
             best_layer_breakdown.append(bscore[2])
@@ -817,23 +842,23 @@ if not hw_score_pool.empty():
     print('Some Trash in the HW Queue')
     exit()
 
-work_load=[[0,hw_pool[0:4]], \
-           [1,hw_pool[4:8]], \
-           [2,hw_pool[8:12]], \
-           [3,hw_pool[12:16]], \
-           [4,hw_pool[16:20]], \
-           [5,hw_pool[20:24]], \
-           [6,hw_pool[24:28]], \
-           [7,hw_pool[28:32]], \
-           [8,hw_pool[32:36]], \
-           [9,hw_pool[36:40]], \
+#work_load=[[0,hw_pool[0:4]], \
+#           [1,hw_pool[4:8]], \
+#           [2,hw_pool[8:12]], \
+#           [3,hw_pool[12:16]], \
+#           [4,hw_pool[16:20]], \
+#           [5,hw_pool[20:24]], \
+#           [6,hw_pool[24:28]], \
+#           [7,hw_pool[28:32]], \
+#           [8,hw_pool[32:36]], \
+#           [9,hw_pool[36:40]], \
 
-]
-#work_load=[
-#           [0,hw_pool[0:1]], \
-#           [1,hw_pool[1:2]], \
-#           [2,hw_pool[2:3]], \
 #]
+work_load=[
+           [0,hw_pool[0:1]], \
+           [1,hw_pool[1:2]], \
+           [2,hw_pool[2:3]], \
+]
 
 processes = [multiprocessing.Process(target=hw_worker, args=([load])) for load in work_load]
 tmp_dump_yard={}
