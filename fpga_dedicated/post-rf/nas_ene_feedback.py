@@ -4,13 +4,13 @@ from ev_dict_object import *
 
 
 
-def ene_lat_qury(dnn, layer_num, cycles=200):
+def ene_lat_qury(dnn, layer_num, cycles=20):
     #hw settup
     hw_spec={\
-    'gb_vol':512*1024*8, \
+    'gb_vol':16*1024*1024, \
     'rf_vol':512*8, \
-    'num_pe':220, \
-    'num_rf':220
+    'num_pe':824, \
+    'num_rf':824
    }
 
    # hw_spec={ \
