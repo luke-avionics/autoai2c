@@ -214,27 +214,27 @@ input_dnn=[\
 
 #vgg16
 #conv
-#input_dnn=[\
-#[1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[128,0],'ch_in':[64,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[128,0],'ch_in':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[256,0],'ch_in':[128,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[512,0],'ch_in':[256,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-#[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}] \
+input_dnn=[\
+[1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[128,0],'ch_in':[64,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[128,0],'ch_in':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[256,0],'ch_in':[128,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[512,0],'ch_in':[256,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
 #]
 #fc
 #input_dnn=[\
-#[7,{'ch_out':[4096,0],'ch_in':[7,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[7,0],'col_kernel':[7,0]}],\
-#[1,{'ch_out':[4096,0],'ch_in':[4096,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[1,0],'col_kernel':[1,0]}],\
-#[1,{'ch_out':[4096,0],'ch_in':[1001,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[1,0],'col_kernel':[1,0]}] \
-#]
+[7,{'ch_out':[4096,0],'ch_in':[7,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[7,0],'col_kernel':[7,0]}],\
+[1,{'ch_out':[4096,0],'ch_in':[4096,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[1,0],'col_kernel':[1,0]}],\
+[1,{'ch_out':[4096,0],'ch_in':[1001,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[1,0],'col_kernel':[1,0]}] \
+]
 
 
 
@@ -248,17 +248,17 @@ input_dnn=[\
 # [1, {'ch_out':[10,0],'ch_in':[84,0],'batch':[1,0],'col_out':[1,0],'row_out':[1,0],'row_kernel':[1,0],'col_kernel':[1,0]}],\
 # ]
 #alexnet
-input_dnn=[\
-[4, {'ch_out':[96,0],'ch_in':[3,0],'batch':[4,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[11,0],'col_kernel':[11,0]}],\
-
-[1,{'ch_out':[256,0],'ch_in':[48,0],'batch':[4,0],'col_out':[27,0],'row_out':[27,0],'row_kernel':[5,0],'col_kernel':[5,0]}],\
-
-[1,{'ch_out':[384,0],'ch_in':[256,0],'batch':[4,0],'col_out':[13,0],'row_out':[13,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-
-[1,{'ch_out':[384,0],'ch_in':[192,0],'batch':[4,0],'col_out':[13,0],'row_out':[13,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-
-[1,{'ch_out':[256,0],'ch_in':[192,0],'batch':[4,0],'col_out':[13,0],'row_out':[13,0],'row_kernel':[3,0],'col_kernel':[3,0]}]\
-]
+#input_dnn=[\
+#[4, {'ch_out':[96,0],'ch_in':[3,0],'batch':[4,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[11,0],'col_kernel':[11,0]}],\
+#
+#[1,{'ch_out':[256,0],'ch_in':[48,0],'batch':[4,0],'col_out':[27,0],'row_out':[27,0],'row_kernel':[5,0],'col_kernel':[5,0]}],\
+#
+#[1,{'ch_out':[384,0],'ch_in':[256,0],'batch':[4,0],'col_out':[13,0],'row_out':[13,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+#
+#[1,{'ch_out':[384,0],'ch_in':[192,0],'batch':[4,0],'col_out':[13,0],'row_out':[13,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+#
+#[1,{'ch_out':[256,0],'ch_in':[192,0],'batch':[4,0],'col_out':[13,0],'row_out':[13,0],'row_kernel':[3,0],'col_kernel':[3,0]}]\
+#]
 
 
 
@@ -371,7 +371,7 @@ test_looporder=['ch_out_rf', 'ch_in_rf', 'row_kernel_rf', 'ref_rf_out', 'row_out
 
 
 
-input_stride_list=[4,1,1,1,1]
+input_stride_list=[1,1,1,1,1]
 stride_list=input_stride_list
 print(arch_life(test_child,stride_list,default_hw,df_order=test_looporder))
 #exit()
@@ -418,7 +418,7 @@ print(arch_life(test_child,stride_list,default_hw,df_order=test_looporder))
 
 
 
-input_stride_list=[4,1,1,1,1]
+input_stride_list=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
 #num_pe*rf_vol+gb_vol
 possible_hw_values={ \
@@ -539,6 +539,22 @@ tmp_hw_spec={ \
     'num_pe':168, \
     'num_rf':168
 }
+#fpga dedicated zed
+tmp_hw_spec={\
+    'gb_vol':512*1024*8, \
+    'rf_vol':512*8, \
+    'num_pe':220, \
+    'num_rf':220
+}
+
+#fpga dedicated 706
+tmp_hw_spec={\
+    'gb_vol':16*1024*1024, \
+    'rf_vol':512*8, \
+    'num_pe':824, \
+    'num_rf':824
+}
+
 #identify the most demanding layer
 layer_break_down=fine_tune([[0]*sum([10,7])]*len(input_dnn),input_dnn,rf_noc_template[5],input_stride_list,tmp_hw_spec,n=200)[2]
 most_demanding_layer=np.argmin(layer_break_down) 
@@ -569,7 +585,8 @@ back_up_pool=[]
 #hw_pool=copy.deepcopy(hw_pool[0:len(hw_pool)//5])
 hw_pool=copy.deepcopy(hw_pool) #change back from hw
 #11,1
-hw_pool=copy.deepcopy([hw_pool[40],hw_pool[38],hw_pool[34],hw_pool[30],hw_pool[39]])
+hw_pool=copy.deepcopy([hw_pool[39],hw_pool[37],hw_pool[33],hw_pool[29],hw_pool[38]])
+hw_pool=[tmp_hw_spec]
 highest_rf_pool=[]
 for tmp_hw_spec in hw_pool:
     def search(input_rf,cycle_scaling,mutation_cycle_scaling):
@@ -856,8 +873,8 @@ if not hw_score_pool.empty():
 #]
 work_load=[
            [0,hw_pool[0:1]], \
-           [1,hw_pool[1:2]], \
-           [2,hw_pool[2:3]], \
+#           [1,hw_pool[1:2]], \
+#           [2,hw_pool[2:3]], \
 ]
 
 processes = [multiprocessing.Process(target=hw_worker, args=([load])) for load in work_load]
