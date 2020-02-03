@@ -213,7 +213,7 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,bit_width=16):
         i[0]['ch_in_dram']=1
 
     return (result_tiling_pool[0])
-print(fpga_tiling_generator(input_dnn,16*1024*1024,800))
+#print(fpga_tiling_generator(input_dnn,16*1024*1024,800))
 #print(_gcd([8,4,4,4,4]))
 #exit()
 
@@ -229,9 +229,12 @@ def random_life(df_order, tiling_pool,input_stride_list,hw_spec,return_best_dict
     score_board=[]    
     df_order=copy.deepcopy(df_order)    
     for i in tiling_pool:
-        score_board.append(arch_life(i,input_stride_list,hw_spec,df_order=df_order)[0])
+       	tiling_for_all_layers=[]
+        for _ in range(len(df_order)):
+            tiling_for_all_layers.append(i)
+        score_board.append(arch_life(tiling_for_all_layers,input_stride_list,hw_spec,df_order=df_order)[0])
     score_pair=sorted(zip(score_board,list(range(len(score_board)))),reverse=True)
-
+    
     if return_best_dict:
         return score_pair[0][0], tiling_pool[score_pair[0][1]]    
     else:
@@ -784,16 +787,6 @@ tmp_hw_spec={\
     'num_rf':824
 }
 
-#identify the most demanding layer
-layer_break_down=fine_tune([[0]*sum([10,7])]*len(input_dnn),input_dnn,rf_noc_template[5],input_stride_list,tmp_hw_spec,n=200)[2]
-most_demanding_layer=np.argmin(layer_break_down) 
-#most_demanding_layer=1
-print('most demanding layer is: ',most_demanding_layer)
-#cycle_scaling=0.1         #change back
-#mutation_cycle_scaling=0.1
-
-
-
 #generate hardware space
 #multi_thread this process and use exhuastive approach
 #check if hw_spec withing the bondary of budget: if eval_func(*hw)~budget
@@ -820,6 +813,7 @@ highest_rf_pool=[]
 
 for tmp_hw_spec in hw_pool:
     tiling_pool=fpga_tiling_generator(input_dnn,tmp_hw_spec['gb_vol'],tmp_hw_spec['num_pe'])
+
     def search(input_rf,cycle_scaling,mutation_cycle_scaling):
         pop_list=[]
         best_pop_cluster=[]
@@ -839,7 +833,7 @@ for tmp_hw_spec in hw_pool:
         for i in reference_starting_points:
             pop_list.append(i)
             child=[]
-            for j range(len(dnn))
+            for j in range(len(dnn)):
                 child.append(sample_results_df(pop_list[-1][j],input_rf))
 
         #generate initial population
@@ -852,7 +846,7 @@ for tmp_hw_spec in hw_pool:
         score_board=[]
         for i in range(0,len(pop_list)):
             child=[]
-            for j range(len(dnn)):
+            for j in range(len(dnn)):
                 child.append(sample_results_df(pop_list[i][j],input_rf))
             score=random_life(child, tiling_pool, stride_list, tmp_hw_spec)
             score_board.append(score)
@@ -898,7 +892,7 @@ for tmp_hw_spec in hw_pool:
                         pop_list.append(new_child)
                         
                     new_child_str=[]
-                    for p_layer range(len(dnn)):
+                    for p_layer in range(len(dnn)):
                         new_child_str.append(sample_results_df(new_child[p_layer],input_rf))
                     score_board.append(random_life(new_child_str, tiling_pool, stride_list, tmp_hw_spec))
 
@@ -917,7 +911,7 @@ for tmp_hw_spec in hw_pool:
                 print('highest score: ',score1)
                 #best_loop_order
                 new_child_str=[]
-                for p_layer range(len(dnn)):
+                for p_layer in range(len(dnn)):
                     new_child_str.append(sample_results_df(pop_list[0][p_layer],input_rf))
                 print(new_child_str)
                 #print(time.time()-tmp_time)
