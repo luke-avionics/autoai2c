@@ -45,7 +45,8 @@ def life_eval(actions,stride,hw_spec,df_order=None):
             pass
         else:
             print('error:',e)
-        #print('child:',actions)
+            print(actions)
+            print(df_order)         
         penalty=-9e12                                  #very strong penalty to over budget
     return penalty
 
@@ -82,18 +83,23 @@ def arch_life(child,input_stride_list,hw_spec,df_order=None):
     #input isolation
     layer_wise=(type(df_order[0])==list)
     layer_break_down=[]
+    raw_data=[]
     stride_list=list(input_stride_list)
     for i in range(len(child)):
         if not layer_wise:
             layer_score=life_eval(child[i],stride_list[i],hw_spec,df_order=df_order)                                                                  #######
         else:
+            #print(child[i])
+            #print(stride_list[i])
             layer_score=life_eval(child[i],stride_list[i],hw_spec,df_order=df_order[i])
         if layer_score > -9e12:
             layer_break_down.append(layer_score)
-            score+=layer_score   
+            score+=layer_score
+            #raw_data.append(ene_results)   
         else:
             #print('layer:',i)
             layer_break_down.append(-9e12)
+            #raw_data.append([9e12,9e12,{}])
             return -9e12,layer_break_down
     return score,layer_break_down
     
@@ -604,4 +610,273 @@ def decompress_dict(input_compressed,reference):
 # (1,{'ch_out':(256,0),'ch_in':(384,0),'batch':(1,0),'col_out':(13,0),'row_out':(13,0)}, 3)\
 # ]
 
+
+def random_life(df_order, tiling_pool,input_stride_list,hw_spec,alloc_slots,rf_num,return_best_dict=False):
+    #after smapling a loop-order, routine to optimize tiling factors to get the energy feedback     
+    score_board=[]
+    df_order=copy.deepcopy(df_order)
+    #print(alloc_slots[rf_num],alloc_slots[rf_num+1])
+
+    score_q=Queue()
+    def worker(i):
+        try: 
+            score_q.put((arch_life(tiling_pool[i],input_stride_list,hw_spec,df_order=df_order)[0],i),False)
+        except NameError:
+            raise Exception("There is no room in the queue in rf template stage")
+    if not score_q.empty():
+        print('Some Trash in the score_q Queue')
+        exit()
+
+    work_load=list(range(alloc_slots[rf_num],alloc_slots[rf_num+1]))
+    processes = [multiprocessing.Process(target=worker, args=([load])) for load in work_load]
+    tmp_dump_yard=[]
+
+    for p in processes:
+        p.start()
+        time.sleep(0.02)
+    time.sleep(2)
+    while not score_q.empty():
+        tmp_batch=score_q.get()
+        tmp_dump_yard.append(tmp_batch)
+    for p in processes:
+        p.join()
+    #too many dump_yard...
+    while not score_q.empty():
+        tmp_batch=score_q.get()
+        tmp_dump_yard.append(tmp_batch)
+
+    score_pair=sorted(tmp_dump_yard,reverse=True)
+
+    #for i in range(alloc_slots[rf_num],alloc_slots[rf_num+1]):
+    #   
+    #   #       tiling_for_all_layers=[]
+    #   # for _ in range(len(df_order)):
+    #   #     tiling_for_all_layers.append(i)
+    #    score_board.append(arch_life(tiling_pool[i],input_stride_list,hw_spec,df_order=df_order)[0])
+    #    print(len(score_board))
+    #score_pair=sorted(zip(score_board,list(range(len(score_board)))),reverse=True)
+
+    if return_best_dict:
+        return score_pair[0][0], tiling_pool[score_pair[0][1]]
+    else:
+        return  score_pair[0][0]
+
+
+
+
+def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,bit_width=16):
+
+    tmp_layer=1
+    ch_in=[]
+    ch_out=[]
+    row_out=[]
+    col_out=[]
+    col_kernel=[]
+    row_kernel=[]
+    kernel_3_index=[]
+    layer_ctr=0
+    for layer in input_dnn:
+        ch_in.append(layer[1]['ch_in'][0])
+        ch_out.append(layer[1]['ch_out'][0])
+        row_out.append(layer[1]['row_out'][0])
+        col_out.append(layer[1]['col_out'][0])
+        row_kernel.append(layer[1]['row_kernel'][0])
+        col_kernel.append(layer[1]['col_kernel'][0])
+        if layer[1]['row_kernel'][0] ==3:
+            kernel_3_index.append(layer_ctr)
+        layer_ctr+=1
+
+    try:
+        if len(ch_in)>1:
+            ch_in.remove(3)
+    except:
+        pass
+    ch_out_bram=_gcd(ch_out)
+    ch_in_bram=_gcd(ch_in)
+
+    col_out_bram=_gcd(col_out)
+    row_out_bram=_gcd(row_out)
+    row_kernel_bram=max(row_kernel)
+    col_kernel_bram=max(col_kernel)
+
+ #buffer size calc
+    output_b_size=ch_out_bram*col_out_bram*row_out_bram*bit_width
+    input_b_size=ch_in_bram*row_out_bram*col_out_bram*bit_width
+    weight_b_size=ch_in_bram*ch_out_bram*col_kernel_bram*row_kernel_bram*bit_width
+    f_index=0
+    while (output_b_size+input_b_size+weight_b_size) > buffer_limit:
+        if (len(input_dnn)>1):
+            raise Exception('Buffer exceeded') 
+        print('buffer exceeded, retry tiling')
+        f_index+=1
+        ch_out_bram=sorted(r_factors(ch_out[0]),reverse=True)[min(len(r_factors(ch_out[0]))-1,f_index)]
+        ch_in_bram=sorted(r_factors(ch_in[0]),reverse=True)[min(len(r_factors(ch_in[0]))-1,f_index)]
+        output_b_size=ch_out_bram*col_out_bram*row_out_bram*bit_width
+        input_b_size=ch_in_bram*row_out_bram*col_out_bram*bit_width
+        weight_b_size=ch_in_bram*ch_out_bram*col_kernel_bram*row_kernel_bram*bit_width
+
+    print((output_b_size+input_b_size+weight_b_size)/8/1024, 'kB buffer used')
+#    if (output_b_size+input_b_size+weight_b_size) > buffer_limit:
+#        raise Exception('buffer size exceeded')
+    #    
+    dram_tiling_head=[]
+    for layer in input_dnn:
+        dram_tiling_head.append({})
+        dram_tiling_head[-1]['ch_out_dram']=max(layer[1]['ch_out'][0]/ch_out_bram,1)
+        dram_tiling_head[-1]['ch_in_dram']=max(layer[1]['ch_in'][0]/ch_in_bram,1)
+        dram_tiling_head[-1]['row_out_dram']=max(layer[1]['row_out'][0]/row_out_bram,1)
+        dram_tiling_head[-1]['col_out_dram']=max(layer[1]['col_out'][0]/col_out_bram,1)
+        dram_tiling_head[-1]['col_kernel_dram']=max(layer[1]['col_kernel'][0]/col_kernel_bram,1)
+        dram_tiling_head[-1]['row_kernel_dram']=max(layer[1]['row_kernel'][0]/row_kernel_bram,1)
+        dram_tiling_head[-1]['batch_dram']=1
+
+    noc_template=[['col_kernel_noc','row_kernel_noc','ch_in_noc','ch_out_noc'], \
+                      ['col_kernel_noc','ch_in_noc','col_out_noc','ch_out_noc'], \
+                      ['row_kernel_noc','ch_in_noc','col_out_noc','ch_out_noc'], \
+                      ['row_out_noc','col_out_noc','ch_out_noc'], \
+                      ]
+
+    bram_noc_tiling=[]
+
+    #1
+    col_kernel_noc=r_factors(col_kernel_bram)
+    row_kernel_noc=r_factors(row_kernel_bram)
+    ch_in_noc=r_factors(ch_in_bram)
+    ch_out_noc=r_factors(ch_out_bram)
+    for i in col_kernel_noc:
+        for j in row_kernel_noc:
+            for k in ch_in_noc:
+                for l in ch_out_noc:
+                    if i*j*k*l<=dsp_limit:
+                        bram_noc_tiling.append({})
+                        bram_noc_tiling[-1]['batch_gb']=1
+                        bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/l
+                        bram_noc_tiling[-1]['ch_out_noc']=l
+                        bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram/k
+                        bram_noc_tiling[-1]['ch_in_noc']=k
+                        bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram/j
+                        bram_noc_tiling[-1]['row_kernel_noc']=j
+                        bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram/i
+                        bram_noc_tiling[-1]['col_kernel_noc']=i
+                        bram_noc_tiling[-1]['row_out_gb']=row_out_bram
+                        bram_noc_tiling[-1]['col_out_gb']=col_out_bram
+    alloc_slots=[0]
+    alloc_slots.append(len(bram_noc_tiling))
+    #2
+    col_out_noc=r_factors(col_out_bram)
+    for i in col_kernel_noc:
+        for j in col_out_noc:
+            for k in ch_in_noc:
+                for l in ch_out_noc:
+                    if i*j*k*l<=dsp_limit:
+                        bram_noc_tiling.append({})
+                        bram_noc_tiling[-1]['batch_gb']=1
+                        bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/l
+                        bram_noc_tiling[-1]['ch_out_noc']=l
+                        bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram/k
+                        bram_noc_tiling[-1]['ch_in_noc']=k
+                        bram_noc_tiling[-1]['col_out_gb']=col_out_bram/j
+                        bram_noc_tiling[-1]['col_out_noc']=j
+                        bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram/i
+                        bram_noc_tiling[-1]['col_kernel_noc']=i
+                        bram_noc_tiling[-1]['row_out_gb']=row_out_bram
+                        bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram
+
+    alloc_slots.append(len(bram_noc_tiling))
+
+    #3
+    for i in row_kernel_noc:
+        for j in col_out_noc:
+            for k in ch_in_noc:
+                for l in ch_out_noc:
+                    if i*j*k*l<=dsp_limit:
+                        bram_noc_tiling.append({})
+                        bram_noc_tiling[-1]['batch_gb']=1
+                        bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/l
+                        bram_noc_tiling[-1]['ch_out_noc']=l
+                        bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram/k
+                        bram_noc_tiling[-1]['ch_in_noc']=k
+                        bram_noc_tiling[-1]['col_out_gb']=col_out_bram/j
+                        bram_noc_tiling[-1]['col_out_noc']=j
+                        bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram/i
+                        bram_noc_tiling[-1]['row_kernel_noc']=i
+                        bram_noc_tiling[-1]['row_out_gb']=row_out_bram
+                        bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram
+    alloc_slots.append(len(bram_noc_tiling))
+    #4
+    row_out_noc=r_factors(row_out_bram)
+    for i in col_out_noc:
+        for j in row_out_noc:
+            for k in ch_out_noc:
+                if i*j*k <= dsp_limit:
+                    bram_noc_tiling.append({})
+                    bram_noc_tiling[-1]['batch_gb']=1
+                    bram_noc_tiling[-1]['col_out_gb']=col_out_bram/i
+                    bram_noc_tiling[-1]['col_out_noc']=i
+                    bram_noc_tiling[-1]['row_out_gb']=col_out_bram/j
+                    bram_noc_tiling[-1]['row_out_noc']=j
+                    bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/k
+                    bram_noc_tiling[-1]['ch_out_noc']=k
+                    bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram
+                    bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram
+                    bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram
+    alloc_slots.append(len(bram_noc_tiling))
+    result_tiling_pool=[]
+
+    for i in bram_noc_tiling:
+        result_tiling_pool.append(copy.deepcopy(dram_tiling_head))
+        for j in range(len(result_tiling_pool[-1])):
+            result_tiling_pool[-1][j]=dict(list(result_tiling_pool[-1][j].items())+list(i.items()))
+
+    for i in result_tiling_pool:
+        for j in kernel_3_index:
+            try:
+                if i[j]['row_kernel_gb']==5:
+                    i[j]['row_kernel_gb']=3
+            except:
+                pass
+            try:
+                if i[j]['row_kernel_noc']==5:
+                    i[j]['row_kernel_noc']=3
+            except:
+                pass
+            try:
+                if i[j]['col_kernel_gb']==5:
+                    i[j]['col_kernel_gb']=3
+            except:
+                pass
+            try:
+                if i[j]['col_kernel_noc']==5:
+                    i[j]['col_kernel_noc']=3
+            except:
+                pass
+    for i in result_tiling_pool:
+        try:
+            i[0]['ch_in_noc']=1
+        except:
+            pass
+        i[0]['ch_in_gb']=3
+        i[0]['ch_in_dram']=1
+
+    return result_tiling_pool,alloc_slots
+
+
+
+def _gcd(l):
+    if len(l)==1:
+        return l[0]
+    def find_gcd(x, y): 
+        while(y): 
+            x, y = y, x % y 
+      
+        return x 
+
+      
+    num1=l[0] 
+    num2=l[1] 
+    gcd=find_gcd(num1,num2) 
+      
+    for i in range(2,len(l)): 
+        gcd=find_gcd(gcd,l[i]) 
+    return gcd
 
