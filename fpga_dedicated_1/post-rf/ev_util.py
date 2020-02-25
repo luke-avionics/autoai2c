@@ -36,7 +36,7 @@ def life_eval(actions,stride,hw_spec,df_order=None):
         else:
             input_df_order=None
         ene_results=simnas.sample_energy(input_actions,stride,hw_spec,input_df_order=input_df_order)
-        penalty=-ene_results[0]*1e-8-ene_results[1]*100
+        penalty=-(ene_results[0]*1e-8*ene_results[1]*100)
         #print(ene_results[0],ene_results[1])
     #if design hw constraint exceeded, 
     #if exceeded return extremely large penalty
@@ -664,8 +664,7 @@ def random_life(df_order, tiling_pool,input_stride_list,hw_spec,alloc_slots,rf_n
 
 
 
-def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,bit_width=16):
-
+def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_space=False,bit_width=16):
     tmp_layer=1
     ch_in=[]
     ch_out=[]
@@ -760,15 +759,43 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,bit_width=16):
                         bram_noc_tiling[-1]['col_kernel_noc']=i
                         bram_noc_tiling[-1]['row_out_gb']=row_out_bram
                         bram_noc_tiling[-1]['col_out_gb']=col_out_bram
+                    elif return_partitioned_space:
+                        bram_noc_tiling.append({})
+                        bram_noc_tiling[-1]['batch_gb']=1
+                        bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/l
+                        bram_noc_tiling[-1]['ch_out_noc']=l
+                        bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram/k
+                        bram_noc_tiling[-1]['ch_in_noc']=k
+                        bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram/j
+                        bram_noc_tiling[-1]['row_kernel_noc']=j
+                        bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram/i
+                        bram_noc_tiling[-1]['col_kernel_noc']=i
+                        bram_noc_tiling[-1]['row_out_gb']=row_out_bram
+                        bram_noc_tiling[-1]['col_out_gb']=col_out_bram
     alloc_slots=[0]
     alloc_slots.append(len(bram_noc_tiling))
+    space_partition=[]
+    space_partition.append([len(col_kernel_noc),len(row_kernel_noc),len(ch_in_noc),len(ch_out_noc)])
     #2
     col_out_noc=r_factors(col_out_bram)
     for i in col_kernel_noc:
         for j in col_out_noc:
             for k in ch_in_noc:
                 for l in ch_out_noc:
-                    if i*j*k*l<=dsp_limit:
+                    if i*j*k*l<=dsp_limit:  
+                        bram_noc_tiling.append({})
+                        bram_noc_tiling[-1]['batch_gb']=1
+                        bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/l
+                        bram_noc_tiling[-1]['ch_out_noc']=l
+                        bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram/k
+                        bram_noc_tiling[-1]['ch_in_noc']=k
+                        bram_noc_tiling[-1]['col_out_gb']=col_out_bram/j
+                        bram_noc_tiling[-1]['col_out_noc']=j
+                        bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram/i
+                        bram_noc_tiling[-1]['col_kernel_noc']=i
+                        bram_noc_tiling[-1]['row_out_gb']=row_out_bram
+                        bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram
+                    elif return_partitioned_space:
                         bram_noc_tiling.append({})
                         bram_noc_tiling[-1]['batch_gb']=1
                         bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/l
@@ -782,8 +809,9 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,bit_width=16):
                         bram_noc_tiling[-1]['row_out_gb']=row_out_bram
                         bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram
 
-    alloc_slots.append(len(bram_noc_tiling))
 
+    alloc_slots.append(len(bram_noc_tiling))
+    space_partition.append([len(col_kernel_noc),len(col_out_noc),len(ch_in_noc),len(ch_out_noc)])
     #3
     for i in row_kernel_noc:
         for j in col_out_noc:
@@ -802,7 +830,21 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,bit_width=16):
                         bram_noc_tiling[-1]['row_kernel_noc']=i
                         bram_noc_tiling[-1]['row_out_gb']=row_out_bram
                         bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram
+                    elif return_partitioned_space:
+                        bram_noc_tiling.append({})
+                        bram_noc_tiling[-1]['batch_gb']=1
+                        bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/l
+                        bram_noc_tiling[-1]['ch_out_noc']=l
+                        bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram/k
+                        bram_noc_tiling[-1]['ch_in_noc']=k
+                        bram_noc_tiling[-1]['col_out_gb']=col_out_bram/j
+                        bram_noc_tiling[-1]['col_out_noc']=j
+                        bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram/i
+                        bram_noc_tiling[-1]['row_kernel_noc']=i
+                        bram_noc_tiling[-1]['row_out_gb']=row_out_bram
+                        bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram
     alloc_slots.append(len(bram_noc_tiling))
+    space_partition.append([len(row_kernel_noc),len(col_out_noc),len(ch_in_noc),len(ch_out_noc)])
     #4
     row_out_noc=r_factors(row_out_bram)
     for i in col_out_noc:
@@ -820,7 +862,20 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,bit_width=16):
                     bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram
                     bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram
                     bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram
+                elif return_partitioned_space:
+                    bram_noc_tiling.append({})
+                    bram_noc_tiling[-1]['batch_gb']=1
+                    bram_noc_tiling[-1]['col_out_gb']=col_out_bram/i
+                    bram_noc_tiling[-1]['col_out_noc']=i
+                    bram_noc_tiling[-1]['row_out_gb']=col_out_bram/j
+                    bram_noc_tiling[-1]['row_out_noc']=j
+                    bram_noc_tiling[-1]['ch_out_gb']=ch_out_bram/k
+                    bram_noc_tiling[-1]['ch_out_noc']=k
+                    bram_noc_tiling[-1]['row_kernel_gb']=row_kernel_bram
+                    bram_noc_tiling[-1]['col_kernel_gb']=col_kernel_bram
+                    bram_noc_tiling[-1]['ch_in_gb']=ch_in_bram
     alloc_slots.append(len(bram_noc_tiling))
+    space_partition.append([len(col_out_noc),len(row_out_noc),len(ch_out_noc)])
     result_tiling_pool=[]
 
     for i in bram_noc_tiling:
@@ -858,8 +913,10 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,bit_width=16):
         i[0]['ch_in_gb']=3
         i[0]['ch_in_dram']=1
 
-    return result_tiling_pool,alloc_slots
-
+    if not return_partitioned_space:
+        return result_tiling_pool,alloc_slots
+    else:
+        return result_tiling_pool,alloc_slots, space_partition
 
 
 def _gcd(l):

@@ -356,12 +356,13 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,input_df_order=None):
         df_order=list(input_df_order)    
     df_config_dict=input_df_dict
     df_order=ref_location_optimization(df_order,df_config_dict)
+    #print('=========\n',df_order)
     all_refresh_locs = ['ref_gb_in','ref_gb_out','ref_gb_we','ref_rf_in','ref_rf_out','ref_rf_we']
     df_config_dict['ref_rf_out']=64
     df_config_dict['ref_rf_in']=16
     df_config_dict['ref_rf_we']=64
     df_config_dict['ref_gb_in']=df_config_dict['ref_gb_out']=df_config_dict['ref_gb_we']=64
-
+    
     stride=input_stride
     # this part is filled in by the "smart" domain specific experts (Yang Zhao)
     dram_vol = float('inf') # the dram volume (bits)
