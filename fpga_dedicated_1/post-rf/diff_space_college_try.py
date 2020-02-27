@@ -20,7 +20,7 @@ def dram_variant_looporder(input_lp_order_dram,input_lp_order_sram):
 def dram_invariant_looporder(input_lp_order):
     # input_lp_order:[range(0,4),                                                                           ]
     #                 pe_array  ,1st pos   ,2nd pos   , 3rd pos  , .........................................
-    if not len(input_lp_order)==len(set(input_lp_order)):
+    if not len(input_lp_order[1:])==len(set(input_lp_order[1:])):
         raise Exception('Please provide lp_order with no duplicate elements')
     input_rf=rf_noc_template[input_lp_order[0]]
     lp_order_template_dram=['col_out_dram', 'ch_out_dram', 'batch_dram','ch_in_dram','row_out_dram','col_kernel_dram','row_kernel_dram']

@@ -738,10 +738,10 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_sp
     bram_noc_tiling=[]
 
     #1
-    col_kernel_noc=r_factors(col_kernel_bram)
-    row_kernel_noc=r_factors(row_kernel_bram)
-    ch_in_noc=r_factors(ch_in_bram)
-    ch_out_noc=r_factors(ch_out_bram)
+    col_kernel_noc=sorted(r_factors(col_kernel_bram))
+    row_kernel_noc=sorted(r_factors(row_kernel_bram))
+    ch_in_noc=sorted(r_factors(ch_in_bram))
+    ch_out_noc=sorted(r_factors(ch_out_bram))
     for i in col_kernel_noc:
         for j in row_kernel_noc:
             for k in ch_in_noc:
@@ -777,7 +777,7 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_sp
     space_partition=[]
     space_partition.append([len(col_kernel_noc),len(row_kernel_noc),len(ch_in_noc),len(ch_out_noc)])
     #2
-    col_out_noc=r_factors(col_out_bram)
+    col_out_noc=sorted(r_factors(col_out_bram))
     for i in col_kernel_noc:
         for j in col_out_noc:
             for k in ch_in_noc:
@@ -846,7 +846,7 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_sp
     alloc_slots.append(len(bram_noc_tiling))
     space_partition.append([len(row_kernel_noc),len(col_out_noc),len(ch_in_noc),len(ch_out_noc)])
     #4
-    row_out_noc=r_factors(row_out_bram)
+    row_out_noc=sorted(r_factors(row_out_bram))
     for i in col_out_noc:
         for j in row_out_noc:
             for k in ch_out_noc:
