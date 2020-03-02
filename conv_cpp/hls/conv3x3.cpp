@@ -39,19 +39,19 @@ void output_buffer0(data_type output_buffer[0][56][2], data_type* flatten_output
 	data_type tmp[56];
 	#pragma HLS ARRAY_PARTITION variable=tmp complete dim=1
 	for (unsigned int i=0; i<56;i++){
-		#pragma HLS UNROLL
+		#pragma HLS PIPELINE
 		tmp[i]=flatten_output[ch_out_1*56*56+i*56+o_col];
 
 	}
 	for (unsigned int i=0; i<56;i++){
 		//#pragma HLS PIPELINE
-	#pragma HLS UNROLL
+	#pragma HLS PIPELINE
 		flatten_output[ch_out_1*56*56+i*56+o_col]=tmp[i]+output_buffer[0][i][o_col_buffer_output_index];
 		//output_buffer[0][i][o_col_buffer_output_index]=0;
 
 	}
 	for (unsigned int i=0; i<56;i++){
-	#pragma HLS UNROLL
+	#pragma HLS PIPELINE
 		output_buffer[0][i][o_col_buffer_output_index]=0;
 
 	}
@@ -67,49 +67,53 @@ void output_buffer0(data_type output_buffer[0][56][2], data_type* flatten_output
 //	}
 //}
 
+void adder_tree(unsigned int ch_in, unsigned int o_row,  int col0, int col1,
+		        int col2, unsigned int o_col_buffer_output_index,
+				data_type output_buffer[0][56][2],data_type weight[1][1][3][3],data_type input_buffer[1][58][6],
+				int tmp0,int tmp1,int tmp2,int tmp3,int tmp4,int tmp5,
+				int tmp6,int tmp7,int tmp8,int tmp9,int tmp10,int tmp11,
+				int tmp12,int tmp13,int tmp14,int tmp15,int tmp16){
 
+	for(ch_in=0;ch_in<1;ch_in++){
+		tmp0=weight[0][ch_in][0][0]*input_buffer[ch_in][o_row+0][col0];
+		tmp1=weight[0][ch_in][0][1]*input_buffer[ch_in][o_row+0][col1];
+		//tmp9=tmp0+tmp1;
+		tmp2=weight[0][ch_in][0][2]*input_buffer[ch_in][o_row+0][col2];
+		tmp3=weight[0][ch_in][1][0]*input_buffer[ch_in][o_row+1][col0];
+		//tmp10=tmp2+tmp3;
+		tmp4=weight[0][ch_in][1][1]*input_buffer[ch_in][o_row+1][col1];
+		tmp5=weight[0][ch_in][1][2]*input_buffer[ch_in][o_row+1][col2];
+		//tmp11=tmp4+tmp5;
+		tmp6=weight[0][ch_in][2][0]*input_buffer[ch_in][o_row+2][col0];
+		tmp7=weight[0][ch_in][2][1]*input_buffer[ch_in][o_row+2][col1];
+		//tmp12=tmp6+tmp7;
+		tmp8=weight[0][ch_in][2][2]*input_buffer[ch_in][o_row+2][col2];
+
+
+
+		tmp9=tmp0+tmp1;
+		tmp10=tmp2+tmp3;
+		tmp11=tmp4+tmp5;
+		tmp12=tmp6+tmp7;
+
+		tmp13=tmp9+tmp10;
+		tmp14=tmp11+tmp12;
+
+		tmp15=tmp13+tmp14;
+
+		output_buffer[0][o_row][o_col_buffer_output_index]=tmp15+tmp8;
+	}
+
+
+}
 void column_based_engine1(data_type output_buffer[0][56][2],data_type weight[1][1][3][3],data_type input_buffer[1][58][6],
 		                 unsigned int o_row, unsigned int ch_in,unsigned int w_col,unsigned int w_row,
 						 unsigned int o_col_buffer_index, unsigned int o_col_buffer_output_index){
-
+	#pragma HLS INLINE off
 	int col0,col1,col2,offset;
 
 	offset=o_col_buffer_index-3;
-//	if (offset==6){
-//		col0=offset-5;
-//		col1=offset-4;
-//		col2=offset-3;
-//	}
-//	else if(offset==5){
-//		col0=offset;
-//		col1=offset-4;
-//		col2=offset-3;
-//	}
-//	else if(offset==4){
-//		col0=offset;
-//		col1=offset+1;
-//		col2=offset-3;
-//	}
-//	else if(offset==-1){
-//		col0=offset+5;
-//		col1=offset+1;
-//		col2=offset+2;
-//	}
-//	else if(offset==-2){
-//		col0=offset+5;
-//		col1=offset+6;
-//		col2=offset+2;
-//	}
-//	else if(offset==-4){
-//		col0=offset+5;
-//		col1=offset+6;
-//		col2=offset+7;
-//	}
-//	else{
-//		col0=offset;
-//		col1=offset+1;
-//		col2=offset+2;
-//	}
+
 
     if(offset==-1){
 		col0=offset+6;
@@ -132,57 +136,35 @@ void column_based_engine1(data_type output_buffer[0][56][2],data_type weight[1][
 		col2=offset+2;
 	}
 
-	for(o_row=0;o_row<20; o_row++){
-			//#pragma HLS UNROLL factor=4
+	for(o_row=0;o_row<56; o_row++){
 	#pragma HLS PIPELINE
 	#pragma HLS DEPENDENCE variable=output_buffer intra false
 	#pragma HLS DEPENDENCE variable=input_buffer intra false
 	#pragma HLS DEPENDENCE variable=weight intra false
-			for(ch_in=0;ch_in<1;ch_in++){
-				int tmp0,tmp1,tmp2,tmp3,tmp4,tmp5;
-				int tmp6,tmp7,tmp8,tmp9,tmp10,tmp11;
-				int tmp12,tmp13,tmp14,tmp15,tmp16;
+	int tmp0,tmp1,tmp2,tmp3,tmp4,tmp5;
+	int tmp6,tmp7,tmp8,tmp9,tmp10,tmp11;
+	int tmp12,tmp13,tmp14,tmp15,tmp16;
+		//initiate adder tree module and force to use it once
+		#pragma HLS allocation instances=adder_tree limit=10 function
+		adder_tree(ch_in, o_row, col0,  col1,
+				        col2, o_col_buffer_output_index,
+						output_buffer, weight,input_buffer,
+						 tmp0, tmp1, tmp2, tmp3, tmp4,tmp5,
+						 tmp6, tmp7, tmp8, tmp9, tmp10, tmp11,
+						 tmp12, tmp13, tmp14, tmp15, tmp16);
 
-				tmp0=weight[0][ch_in][0][0]*input_buffer[ch_in][o_row+0][col0];
-				tmp1=weight[0][ch_in][0][1]*input_buffer[ch_in][o_row+0][col1];
-				//tmp9=tmp0+tmp1;
-				tmp2=weight[0][ch_in][0][2]*input_buffer[ch_in][o_row+0][col2];
-				tmp3=weight[0][ch_in][1][0]*input_buffer[ch_in][o_row+1][col0];
-				//tmp10=tmp2+tmp3;
-				tmp4=weight[0][ch_in][1][1]*input_buffer[ch_in][o_row+1][col1];
-				tmp5=weight[0][ch_in][1][2]*input_buffer[ch_in][o_row+1][col2];
-				//tmp11=tmp4+tmp5;
-				tmp6=weight[0][ch_in][2][0]*input_buffer[ch_in][o_row+2][col0];
-				tmp7=weight[0][ch_in][2][1]*input_buffer[ch_in][o_row+2][col1];
-				//tmp12=tmp6+tmp7;
-				tmp8=weight[0][ch_in][2][2]*input_buffer[ch_in][o_row+2][col2];
-
-
-
-				tmp9=tmp0+tmp1;
-				tmp10=tmp2+tmp3;
-				tmp11=tmp4+tmp5;
-				tmp12=tmp6+tmp7;
-
-				tmp13=tmp9+tmp10;
-				tmp14=tmp11+tmp12;
-
-				tmp15=tmp13+tmp14;
-
-				output_buffer[0][o_row][o_col_buffer_output_index]=tmp15+tmp8;
-			}
 		}
 
 
 }
 
 
-void column_based_engine_wrapper(data_type output_buffer[0][56][2],data_type weight[1][1][3][3],data_type input_buffer[1][58][6],
-        unsigned int o_row, unsigned int ch_in,unsigned int w_col,unsigned int w_row,
-		 unsigned int o_col_buffer_index, unsigned int o_col_buffer_output_index){
-	//column_based_engine(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
-	column_based_engine1(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
-}
+//void column_based_engine_wrapper(data_type output_buffer[0][56][2],data_type weight[1][1][3][3],data_type input_buffer[1][58][6],
+//        unsigned int o_row, unsigned int ch_in,unsigned int w_col,unsigned int w_row,
+//		 unsigned int o_col_buffer_index, unsigned int o_col_buffer_output_index){
+//	//column_based_engine(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
+//	column_based_engine1(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
+//}
 
 void conv3_3(data_type* flatten_input, data_type* flatten_weight, data_type* flatten_output ){
 #pragma HLS INTERFACE axis  depth=430592 port=flatten_input
@@ -269,7 +251,7 @@ void conv3_3(data_type* flatten_input, data_type* flatten_weight, data_type* fla
 
 					//column_based_engine(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
 					//column_based_engine1(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
-					column_based_engine_wrapper(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
+					column_based_engine1(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
 					//potential optimization to reduce a couple of more cycles
 					input_buffer1(input_buffer, flatten_input,
 							      ch_in_1, o_col, o_col_buffer_index);
