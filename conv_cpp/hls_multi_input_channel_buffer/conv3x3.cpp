@@ -4,12 +4,12 @@
 #include <iostream>
 using namespace std;
 
-
+//TODO: change unroll in buffering to pipeline
 void input_buffer0(data_type input_buffer[4][58][6], data_type* flatten_input,unsigned int ch_in_1){
 	for (unsigned int k=0; k< 4;k++){
 		for (unsigned int i=0;i<58;i++){
 			for (unsigned int j=0;j<3;j++){
-				#pragma HLS UNROLL
+				#pragma HLS PIPELINE
 				input_buffer[k][i][j]=flatten_input[(ch_in_1*4+k)*58*58+58*i+j];
 			}
 		}
@@ -46,13 +46,22 @@ void input_buffer1(data_type input_buffer[58][6], data_type* flatten_input,
 		input_buffer[i][o_col_buffer_index]=flatten_input[tmp*58*58+i*58+o_col+3];
 		}
 }
-
-void input_buffer_wrapper(data_type input_buffer[4][58][6], data_type* flatten_input,
+void input_buffer1_2(data_type input_buffer[58][6], data_type* flatten_input,
+		          unsigned int ch_in_1, unsigned int o_col, unsigned int o_col_buffer_index,unsigned int ch_in_index){
+	unsigned int tmp=ch_in_1*4+ch_in_index;
+	for (unsigned int i=0; i<58; i++){
+		#pragma HLS PIPELINE
+		input_buffer[i][o_col_buffer_index]=flatten_input[tmp*58*58+i*58+o_col+3];
+		}
+}
+//TODO: inline this function
+void input_buffer_wrapper(data_type input_buffer[58][6], data_type input_buffer_1[58][6], data_type* flatten_input,
         unsigned int ch_in_1, unsigned int o_col, unsigned int o_col_buffer_index){
-	#pragma HLS allocation instances=input_buffer1 limit=4 function
+	#pragma HLS allocation instances=input_buffer1 limit=1 function
+	//#pragma HLS allocation instances=input_buffer1_2 limit=1 function
     #pragma HLS DEPENDENCE variable=input_buffer intra false
-	input_buffer1(input_buffer[0], flatten_input, ch_in_1,o_col,o_col_buffer_index,0);
-	input_buffer1(input_buffer[1], flatten_input, ch_in_1,o_col,o_col_buffer_index,1);
+	input_buffer1(input_buffer, flatten_input, ch_in_1,o_col,o_col_buffer_index,0);
+	input_buffer1(input_buffer_1, flatten_input, ch_in_1,o_col,o_col_buffer_index,1);
 //	input_buffer1(input_buffer[2], flatten_input, ch_in_1,o_col,o_col_buffer_index,2);
 //	input_buffer1(input_buffer[3], flatten_input, ch_in_1,o_col,o_col_buffer_index,3);
 	//input_buffer1(input_buffer, flatten_input, ch_in_1,o_col,o_col_buffer_index,1);
@@ -95,7 +104,45 @@ void output_buffer0(data_type output_buffer[1][56][2], data_type* flatten_output
 
 data_type adder_tree(unsigned int ch_in, unsigned int o_row,  int col0, int col1,
 		        int col2, unsigned int o_col_buffer_output_index,
-				data_type output_buffer[56][2],data_type weight[3][3],data_type input_buffer[58][6]){
+				data_type weight[3][3],data_type input_buffer[58][6]){
+	data_type tmp0,tmp1,tmp2,tmp3,tmp4,tmp5;
+	data_type tmp6,tmp7,tmp8,tmp9,tmp10,tmp11;
+	data_type tmp12,tmp13,tmp14,tmp15,tmp16;
+	for(ch_in=0;ch_in<1;ch_in++){
+		tmp0=weight[0][0]*input_buffer[o_row+0][col0];
+		tmp1=weight[0][1]*input_buffer[o_row+0][col1];
+		//tmp9=tmp0+tmp1;
+		tmp2=weight[0][2]*input_buffer[o_row+0][col2];
+		tmp3=weight[1][0]*input_buffer[o_row+1][col0];
+		//tmp10=tmp2+tmp3;
+		tmp4=weight[1][1]*input_buffer[o_row+1][col1];
+		tmp5=weight[1][2]*input_buffer[o_row+1][col2];
+		//tmp11=tmp4+tmp5;
+		tmp6=weight[2][0]*input_buffer[o_row+2][col0];
+		tmp7=weight[2][1]*input_buffer[o_row+2][col1];
+		//tmp12=tmp6+tmp7;
+		tmp8=weight[2][2]*input_buffer[o_row+2][col2];
+
+
+
+		tmp9=tmp0+tmp1;
+		tmp10=tmp2+tmp3;
+		tmp11=tmp4+tmp5;
+		tmp12=tmp6+tmp7;
+
+		tmp13=tmp9+tmp10;
+		tmp14=tmp11+tmp12;
+
+		tmp15=tmp13+tmp14;
+
+		//output_buffer[0][o_row][o_col_buffer_output_index]=tmp15+tmp8;
+	}
+	return tmp15+tmp8;
+
+}
+data_type adder_tree1(unsigned int ch_in, unsigned int o_row,  int col0, int col1,
+		        int col2, unsigned int o_col_buffer_output_index,
+				data_type weight[3][3],data_type input_buffer[58][6]){
 	data_type tmp0,tmp1,tmp2,tmp3,tmp4,tmp5;
 	data_type tmp6,tmp7,tmp8,tmp9,tmp10,tmp11;
 	data_type tmp12,tmp13,tmp14,tmp15,tmp16;
@@ -132,6 +179,95 @@ data_type adder_tree(unsigned int ch_in, unsigned int o_row,  int col0, int col1
 
 }
 
+data_type adder_tree2(unsigned int ch_in, unsigned int o_row,  int col0, int col1,
+		        int col2, unsigned int o_col_buffer_output_index,
+				data_type weight[3][3],data_type input_buffer[58][6]){
+	data_type tmp0,tmp1,tmp2,tmp3,tmp4,tmp5;
+	data_type tmp6,tmp7,tmp8,tmp9,tmp10,tmp11;
+	data_type tmp12,tmp13,tmp14,tmp15,tmp16;
+	for(ch_in=0;ch_in<1;ch_in++){
+		tmp0=weight[0][0]*input_buffer[o_row+0][col0];
+		tmp1=weight[0][1]*input_buffer[o_row+0][col1];
+		//tmp9=tmp0+tmp1;
+		tmp2=weight[0][2]*input_buffer[o_row+0][col2];
+		tmp3=weight[1][0]*input_buffer[o_row+1][col0];
+		//tmp10=tmp2+tmp3;
+		tmp4=weight[1][1]*input_buffer[o_row+1][col1];
+		tmp5=weight[1][2]*input_buffer[o_row+1][col2];
+		//tmp11=tmp4+tmp5;
+		tmp6=weight[2][0]*input_buffer[o_row+2][col0];
+		tmp7=weight[2][1]*input_buffer[o_row+2][col1];
+		//tmp12=tmp6+tmp7;
+		tmp8=weight[2][2]*input_buffer[o_row+2][col2];
+
+
+
+		tmp9=tmp0+tmp1;
+		tmp10=tmp2+tmp3;
+		tmp11=tmp4+tmp5;
+		tmp12=tmp6+tmp7;
+
+		tmp13=tmp9+tmp10;
+		tmp14=tmp11+tmp12;
+
+		tmp15=tmp13+tmp14;
+
+		//output_buffer[0][o_row][o_col_buffer_output_index]=tmp15+tmp8;
+	}
+	return tmp15+tmp8;
+
+}
+data_type adder_tree3(unsigned int ch_in, unsigned int o_row,  int col0, int col1,
+		        int col2, unsigned int o_col_buffer_output_index,
+				data_type weight[3][3],data_type input_buffer[58][6]){
+	data_type tmp0,tmp1,tmp2,tmp3,tmp4,tmp5;
+	data_type tmp6,tmp7,tmp8,tmp9,tmp10,tmp11;
+	data_type tmp12,tmp13,tmp14,tmp15,tmp16;
+	for(ch_in=0;ch_in<1;ch_in++){
+		tmp0=weight[0][0]*input_buffer[o_row+0][col0];
+		tmp1=weight[0][1]*input_buffer[o_row+0][col1];
+		//tmp9=tmp0+tmp1;
+		tmp2=weight[0][2]*input_buffer[o_row+0][col2];
+		tmp3=weight[1][0]*input_buffer[o_row+1][col0];
+		//tmp10=tmp2+tmp3;
+		tmp4=weight[1][1]*input_buffer[o_row+1][col1];
+		tmp5=weight[1][2]*input_buffer[o_row+1][col2];
+		//tmp11=tmp4+tmp5;
+		tmp6=weight[2][0]*input_buffer[o_row+2][col0];
+		tmp7=weight[2][1]*input_buffer[o_row+2][col1];
+		//tmp12=tmp6+tmp7;
+		tmp8=weight[2][2]*input_buffer[o_row+2][col2];
+
+
+
+		tmp9=tmp0+tmp1;
+		tmp10=tmp2+tmp3;
+		tmp11=tmp4+tmp5;
+		tmp12=tmp6+tmp7;
+
+		tmp13=tmp9+tmp10;
+		tmp14=tmp11+tmp12;
+
+		tmp15=tmp13+tmp14;
+
+		//output_buffer[0][o_row][o_col_buffer_output_index]=tmp15+tmp8;
+	}
+	return tmp15+tmp8;
+
+}
+
+data_type tree_wrapper(data_type weight[4][3][3],data_type input_buffer[4][58][6],
+						unsigned int ch_in, unsigned int o_row, int col0, int col1, int col2, unsigned int o_col_buffer_output_index){
+	int tree_result0, tree_result1;
+	tree_result0=adder_tree(ch_in, o_row, col0,  col1,
+			        col2, o_col_buffer_output_index,
+					 weight[0],input_buffer[0]);
+	tree_result1=adder_tree1(ch_in, o_row, col0,  col1,
+			        col2, o_col_buffer_output_index,
+					 weight[1],input_buffer[1]);
+	return tree_result0+tree_result1;
+
+}
 
 void column_based_engine1(data_type output_buffer[56][2],data_type weight[4][3][3],data_type input_buffer[4][58][6],
 		                 unsigned int o_row, unsigned int ch_in,unsigned int w_col,unsigned int w_row,
@@ -166,27 +302,33 @@ void column_based_engine1(data_type output_buffer[56][2],data_type weight[4][3][
 	}
 
 	for(o_row=0;o_row<56; o_row++){
-	#pragma HLS PIPELINE
-	#pragma HLS DEPENDENCE variable=output_buffer intra false
-	#pragma HLS DEPENDENCE variable=input_buffer intra false
-	#pragma HLS DEPENDENCE variable=weight intra false
+		#pragma HLS PIPELINE
+		#pragma HLS DEPENDENCE variable=output_buffer intra false
+		#pragma HLS DEPENDENCE variable=input_buffer intra false
+		#pragma HLS DEPENDENCE variable=weight intra false
+		data_type tree_result0,tree_result1,tree_result2,tree_result3;
 
-	data_type tree_result0,tree_result1,tree_result2,tree_result3;
 		//initiate adder tree module and force to use it once
+
+//		#pragma HLS allocation instances=tree_wrapper limit=1 function
 		#pragma HLS allocation instances=adder_tree limit=2 function
+		#pragma HLS allocation instances=adder_tree1 limit=2 function
+//		#pragma HLS allocation instances=adder_tree2 limit=1 function
+//		#pragma HLS allocation instances=adder_tree3 limit=1 function
 		tree_result0=adder_tree(ch_in, o_row, col0,  col1,
 				        col2, o_col_buffer_output_index,
-						output_buffer, weight[0],input_buffer[0]);
-//		tree_result1=adder_tree(ch_in, o_row, col0,  col1,
+						 weight[0],input_buffer[0]);
+//		tree_result1=adder_tree1(ch_in, o_row, col0,  col1,
 //				        col2, o_col_buffer_output_index,
-//						output_buffer, weight[1],input_buffer[1]);
+//						weight[1],input_buffer[1]);
 //		tree_result2=adder_tree(ch_in, o_row, col0,  col1,
 //				        col2, o_col_buffer_output_index,
 //						output_buffer, weight[2],input_buffer[2]);
 //		tree_result3=adder_tree(ch_in, o_row, col0,  col1,
 //				        col2, o_col_buffer_output_index,
 //						output_buffer, weight[3],input_buffer[3]);
-		output_buffer[o_row][o_col_buffer_output_index]=tree_result0;
+		tree_result2=tree_result0+tree_result1;
+		output_buffer[o_row][o_col_buffer_output_index]=tree_result2;
 
 		}
 
@@ -210,7 +352,7 @@ void conv3_3(data_type* flatten_input, data_type* flatten_weight, data_type* fla
 #pragma HLS INTERFACE m_axi  depth=802816 port=flatten_output
 //    data_type input[1][58][58];
 	data_type input_buffer[4][58][6];
-
+#pragma HLS ARRAY_PARTITION variable=input_buffer complete dim=1
 #pragma HLS ARRAY_PARTITION variable=input_buffer complete dim=2
 #pragma HLS ARRAY_PARTITION variable=input_buffer complete dim=3
 	data_type weight[1][4][3][3];
@@ -290,7 +432,7 @@ void conv3_3(data_type* flatten_input, data_type* flatten_weight, data_type* fla
 					//column_based_engine1(output_buffer, weight, input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
 					column_based_engine1(output_buffer[0], weight[0], input_buffer, o_row, ch_in,w_col, w_row,o_col_buffer_index, o_col_buffer_output_index);
 					//potential optimization to reduce a couple of more cycles
-					input_buffer_wrapper(input_buffer, flatten_input,
+					input_buffer_wrapper(input_buffer[0],input_buffer[1], flatten_input,
 							      ch_in_1, o_col, o_col_buffer_index);
 
 
