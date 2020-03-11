@@ -17,22 +17,37 @@ def dram_variant_looporder(input_lp_order_dram,input_lp_order_sram):
     return None
 
 
-def dram_invariant_looporder(input_lp_order):
+#def dram_invariant_looporder(input_lp_order):
+#    # input_lp_order:[range(0,4),                                                                           ]
+#    #                 pe_array  ,1st pos   ,2nd pos   , 3rd pos  , .........................................
+#    if not len(input_lp_order[1:])==len(set(input_lp_order[1:])):
+#        raise Exception('Please provide lp_order with no duplicate elements')
+#    input_rf=rf_noc_template[input_lp_order[0]]
+#    lp_order_template_dram=['col_out_dram', 'ch_out_dram', 'batch_dram','ch_in_dram','row_out_dram','col_kernel_dram','row_kernel_dram']
+#    lp_order_template=['ref_gb_we','ch_out_gb', 'ref_gb_in','ch_in_gb','col_kernel_gb', 'row_out_gb','batch_gb','col_out_gb','row_kernel_gb','ref_gb_out']
+#    lp_order_string=[]
+#    input_actions=input_lp_order[1:12]
+#    for i in range(len(lp_order_template)):
+#        lp_order_string.append(lp_order_template[input_actions[i]])
+#    index_lst=list(range(len(lp_order_template_dram)))
+#    shuffle(index_lst)
+#    for i in index_lst:
+#        lp_order_string.append(lp_order_template_dram[i])
+#    return copy.deepcopy(input_rf)+copy.deepcopy(lp_order_string)
+
+def dram_invariant_looporder(pe_array, input_lp_order_dram, input_lp_order_gb):
     # input_lp_order:[range(0,4),                                                                           ]
     #                 pe_array  ,1st pos   ,2nd pos   , 3rd pos  , .........................................
-    if not len(input_lp_order[1:])==len(set(input_lp_order[1:])):
+    if not (len(input_lp_order_gb)==len(set(input_lp_order_gb)) and len(input_lp_order_dram)==len(set(input_lp_order_dram))):
         raise Exception('Please provide lp_order with no duplicate elements')
-    input_rf=rf_noc_template[input_lp_order[0]]
+    input_rf=rf_noc_template[pe_array]
     lp_order_template_dram=['col_out_dram', 'ch_out_dram', 'batch_dram','ch_in_dram','row_out_dram','col_kernel_dram','row_kernel_dram']
-    lp_order_template=['ref_gb_we','ch_out_gb', 'ref_gb_in','ch_in_gb','col_kernel_gb', 'row_out_gb','batch_gb','col_out_gb','row_kernel_gb','ref_gb_out']
+    lp_order_template=['ch_out_gb','ch_in_gb','col_kernel_gb', 'row_out_gb','batch_gb','col_out_gb','row_kernel_gb']
     lp_order_string=[]
-    input_actions=input_lp_order[1:12]
     for i in range(len(lp_order_template)):
-        lp_order_string.append(lp_order_template[input_actions[i]])
-    index_lst=list(range(len(lp_order_template_dram)))
-    shuffle(index_lst)
-    for i in index_lst:
-        lp_order_string.append(lp_order_template_dram[i])
+        lp_order_string.append(lp_order_template[input_lp_order_gb[i]])
+    for i in range(len(lp_order_template_dram)):
+        lp_order_string.append(lp_order_template_dram[input_lp_order_dram[i]])
     return copy.deepcopy(input_rf)+copy.deepcopy(lp_order_string)
 
 def tiling_translation(tiling_scheme,tiling_pool,alloc_slots,pe_array):
@@ -69,10 +84,10 @@ input_dnn=[\
 
 #fpga dedicated 706
 tmp_hw_spec={\
-    'gb_vol':16*1024*1024, \
-    'rf_vol':512*8, \
-    'num_pe':824, \
-    'num_rf':824
+    'gb_vol':2*1024*1024, \
+    'rf_vol':512, \
+    'num_pe':156, \
+    'num_rf':156
 }
 
 
@@ -95,17 +110,15 @@ print(space_partition)
 
 for _ in range(100):
 
-    input_lp_order=[]
     #pick a pe array
     pe_array=randint(0,3)
-    #include the pe array to the lp_order
-    input_lp_order.append(pe_array)
     #complete the rest of the lp_order
-    tmp_list=list(range(10))
-    shuffle(tmp_list)
-    input_lp_order+=tmp_list
+    input_lp_order_gb=list(range(7))
+    shuffle(input_lp_order_gb)
+    input_lp_order_dram=list(range(7))
+    shuffle(input_lp_order_dram)
     #translate the lp_order to string format
-    lp_order_string=dram_invariant_looporder(input_lp_order)
+    lp_order_string=dram_invariant_looporder(pe_array,input_lp_order_gb, input_lp_order_dram)
     #choose the applicable tiling space
     partitioned_choices=space_partition[pe_array]
     #generate a tiling scheme according to chosen space 

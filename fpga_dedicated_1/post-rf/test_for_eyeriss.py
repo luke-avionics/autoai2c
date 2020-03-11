@@ -353,7 +353,24 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,input_df_order=None):
     input_df_dict=copy.deepcopy(input_input_df_dict)
 
     if input_df_order:
-        df_order=list(input_df_order)    
+        df_order=list(input_df_order)  
+    #check if there is pre_defined ref_locs 
+    pre_defined_ref=False
+    for i in df_order:
+        if 'ref' in i:
+            pre_defined_ref=True
+            break 
+    if not pre_defined_ref:
+        for i in range(len(df_order)):
+            if 'gb' in df_order[i]:
+                break
+        df_order.insert(i,'ref_gb_in') 
+        df_order.insert(i,'ref_gb_out')
+        df_order.insert(i,'ref_gb_we')
+        df_order.insert(0,'ref_rf_in')
+        df_order.insert(0,'ref_rf_out')
+        df_order.insert(0,'ref_rf_we')
+
     df_config_dict=input_df_dict
     df_order=ref_location_optimization(df_order,df_config_dict)
     #print('=========\n',df_order)
