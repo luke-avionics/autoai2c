@@ -50,14 +50,20 @@ def dram_invariant_looporder(pe_array, input_lp_order_dram, input_lp_order_gb):
         lp_order_string.append(lp_order_template_dram[input_lp_order_dram[i]])
     return copy.deepcopy(input_rf)+copy.deepcopy(lp_order_string)
 
-def tiling_translation(tiling_scheme,tiling_pool,alloc_slots,pe_array):
+
+def tiling_translation(tiling_scheme,tiling_pool,alloc_slots,pe_array,space_partition):
     tiling_pool=copy.deepcopy(tiling_pool[alloc_slots[pe_array]:alloc_slots[pe_array+1]])
-    index=1
-    for i in tiling_scheme:
-        index*=(i+1)
-    index-=1
+    index=0
+    for i in range(len(tiling_scheme)):
+        tmp=tiling_scheme[i]
+        for j in range(i+1,len(tiling_scheme)):
+            tmp*=space_partition[pe_array][j]
+        index+=tmp
+    #print('abs index: ',index)
     tiling_string=tiling_pool[index]
     return tiling_string[0]
+
+
 
 def dsp_check(tiling_scheme_string,dsp_limit):
     dsp_consumption=1    
@@ -127,7 +133,7 @@ for _ in range(100):
     for i in partitioned_choices:
         tiling_scheme.append(randint(0,i-1))
     #translate the tiling_scheme to string(dict) format
-    tiling_scheme_string=tiling_translation(tiling_scheme,tiling_pool,alloc_slots,pe_array)
+    tiling_scheme_string=tiling_translation(tiling_scheme,tiling_pool,alloc_slots,pe_array,space_partition)
     #check if larger than DSP limit
     if not dsp_check(tiling_scheme_string, tmp_hw_spec['num_pe']):
         print('DSP limit exceeded')

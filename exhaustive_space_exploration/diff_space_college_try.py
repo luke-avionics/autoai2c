@@ -35,14 +35,21 @@ def dram_invariant_looporder(input_lp_order):
         lp_order_string.append(lp_order_template_dram[i])
     return copy.deepcopy(input_rf)+copy.deepcopy(lp_order_string)
 
-def tiling_translation(tiling_scheme,tiling_pool,alloc_slots,pe_array):
+
+
+def tiling_translation(tiling_scheme,tiling_pool,alloc_slots,pe_array,space_partition):
     tiling_pool=copy.deepcopy(tiling_pool[alloc_slots[pe_array]:alloc_slots[pe_array+1]])
-    index=1
-    for i in tiling_scheme:
-        index*=(i+1)
-    index-=1
+    index=0
+    for i in range(len(tiling_scheme)):
+        tmp=tiling_scheme[i]
+        for j in range(i+1,len(tiling_scheme)):
+            tmp*=space_partition[pe_array][j]
+        index+=tmp
+    #print('abs index: ',index)
     tiling_string=tiling_pool[index]
     return tiling_string[0]
+
+
 
 def dsp_check(tiling_scheme_string,dsp_limit):
     dsp_consumption=1    
