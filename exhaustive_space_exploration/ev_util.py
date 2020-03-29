@@ -877,7 +877,6 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_sp
     alloc_slots.append(len(bram_noc_tiling))
     space_partition.append([len(col_out_noc),len(row_out_noc),len(ch_out_noc)])
     result_tiling_pool=[]
-
     for i in bram_noc_tiling:
         result_tiling_pool.append(copy.deepcopy(dram_tiling_head))
         for j in range(len(result_tiling_pool[-1])):
@@ -905,19 +904,20 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_sp
                     i[j]['col_kernel_noc']=3
             except:
                 pass
-    for i in result_tiling_pool:
-        try:
-            i[0]['ch_in_noc']=1
-        except:
-            pass
-        i[0]['ch_in_gb']=3
-        i[0]['ch_in_dram']=1
-
+    if len(result_tiling_pool[0])==1:
+        pass
+    else:
+        for i in result_tiling_pool:
+            try:
+                i[0]['ch_in_noc']=1
+            except:
+                pass
+            i[0]['ch_in_gb']=3
+            i[0]['ch_in_dram']=1
     if not return_partitioned_space:
         return result_tiling_pool,alloc_slots
     else:
         return result_tiling_pool,alloc_slots, space_partition
-
 
 def _gcd(l):
     if len(l)==1:
