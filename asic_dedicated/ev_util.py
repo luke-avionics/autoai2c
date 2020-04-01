@@ -42,6 +42,7 @@ def life_eval(actions,stride,hw_spec,df_order=None):
     #if design hw constraint exceeded, 
     #if exceeded return extremely large penalty
     except Exception as e:
+        #print(e)
         if 'resource' in str(e):
             pass
         else:
@@ -679,6 +680,7 @@ def data_type_sizes(input_dnn):
     
 class asic_tiling_generator():
     def __init__(self, input_dnn, hw_spec):
+        self.pe_array_dim_num=10
         input_dnn=copy.deepcopy(input_dnn)
         hw_spec=copy.deepcopy(hw_spec)
         [input_size,output_size, weight_size]=data_type_sizes(input_dnn)
@@ -798,13 +800,6 @@ class asic_tiling_generator():
             col_out_choices=sorted(r_factors(input_dnn[i][1]['col_out'][0]))
             row_out_choices=sorted(r_factors(input_dnn[i][1]['row_out'][0]))
             
-            incr_index=0
-            incr_out_index=0
-            incr_col_index=0
-            incr_row_index=0
-            tmp_ch_out_noc=1
-            tmp_col_out_noc=1
-            tmp_row_out_noc=1
             
             pe_designs=[]
             str1=[]
@@ -820,7 +815,7 @@ class asic_tiling_generator():
             pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
             #print(pe_designs[1:10])
             
-            for pe_design in pe_designs[0:10]:
+            for pe_design in pe_designs[0:self.pe_array_dim_num]:
                 self.os_noc[-1].append({})
                 self.os_rf_gb_tiling_choices[-1].append({})
                 self.os_rf_gb_tiling_choices_num[-1].append([])
@@ -849,26 +844,137 @@ class asic_tiling_generator():
                 self.os_rf_gb_tiling_choices[-1][-1]['batch_rf_gb_choices']=factor_n(input_dnn[i][1]['batch'][0],3)
                 self.os_rf_gb_tiling_choices_num[-1][-1].append(len(self.os_rf_gb_tiling_choices[-1][-1]['batch_rf_gb_choices']))
 
-            # while ch_out_noc*col_out_noc*row_out_noc< self.dsp_limit:
-                # ch_out_noc=tmp_ch_out_noc
-                # col_out_noc=tmp_col_out_noc
-                # row_out_noc=tmp_row_out_noc
-                # if incr_index
+
             
             
-            
-            
+
             
             
         #row stationary1 
+        self.rs1_noc=[]
+        self.rs1_rf_gb_tiling_choices=[]
+        self.rs1_rf_gb_tiling_choices_num=[]
+        for i in range(len(input_dnn)):
+            self.rs1_noc.append([])
+            self.rs1_rf_gb_tiling_choices.append([])
+            self.rs1_rf_gb_tiling_choices_num.append([])
+            ch_in_choices=sorted(r_factors(input_dnn[i][1]['ch_in'][0]))
+            ch_out_choices=sorted(r_factors(input_dnn[i][1]['ch_out'][0]))
+            col_out_choices=sorted(r_factors(input_dnn[i][1]['col_out'][0]))
+            row_kernel_choices=sorted(r_factors(input_dnn[i][1]['row_kernel'][0]))
+            
+            
+            pe_designs=[]
+            str1=[]
+            for m in ch_in_choices:
+                for l in ch_out_choices:
+                    for j in col_out_choices:
+                        if m*l*j*input_dnn[i][1]['row_kernel'][0] <= self.dsp_limit:
+                            pe_designs.append(m*l*j*input_dnn[i][1]['row_kernel'][0])
+                            str1.append((m,l,j,input_dnn[i][1]['row_kernel'][0]))
+            pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
+            #print(pe_designs[1:10])
+            
+            for pe_design in pe_designs[0:self.pe_array_dim_num]:
+                self.rs1_noc[-1].append({})
+                self.rs1_rf_gb_tiling_choices[-1].append({})
+                self.rs1_rf_gb_tiling_choices_num[-1].append([])
+                self.rs1_noc[-1][-1]['ch_in_noc']=pe_design[0]
+                self.rs1_noc[-1][-1]['ch_out_noc']=pe_design[1]
+                self.rs1_noc[-1][-1]['col_out_noc']=pe_design[2]
+                self.rs1_noc[-1][-1]['row_kernel_noc']=pe_design[3]
+                
+                self.rs1_rf_gb_tiling_choices[-1][-1]['ch_in_rf_gb_choices']=factor_n(input_dnn[i][1]['ch_in'][0]//self.rs1_noc[-1][-1]['ch_in_noc'],3)
+                self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['ch_in_rf_gb_choices']))
+                
+                self.rs1_rf_gb_tiling_choices[-1][-1]['ch_out_rf_gb_choices']=factor_n(input_dnn[i][1]['ch_out'][0]//self.rs1_noc[-1][-1]['ch_out_noc'],3)
+                self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['ch_out_rf_gb_choices']))
+                
+                self.rs1_rf_gb_tiling_choices[-1][-1]['col_out_rf_gb_choices']=factor_n(input_dnn[i][1]['col_out'][0]//self.rs1_noc[-1][-1]['col_out_noc'],3)
+                self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['col_out_rf_gb_choices']))
+                
+                self.rs1_rf_gb_tiling_choices[-1][-1]['row_out_rf_gb_choices']=factor_n(input_dnn[i][1]['row_out'][0],3)
+                self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['row_out_rf_gb_choices']))
+            
+                self.rs1_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']=factor_n(input_dnn[i][1]['col_kernel'][0],3)
+                self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']))    
+
+                self.rs1_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']=[[1,1,1]]
+                self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']))                 
+
+                self.rs1_rf_gb_tiling_choices[-1][-1]['batch_rf_gb_choices']=factor_n(input_dnn[i][1]['batch'][0],3)
+                self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['batch_rf_gb_choices']))
+
+            #noc_template to be considered 
+# noc_template=[['col_kernel_noc','row_kernel_noc','ch_in_noc','ch_out_noc'], \
+                      # ['col_kernel_noc','ch_in_noc','col_out_noc','ch_out_noc'], \
+                      # ['row_kernel_noc','ch_in_noc','col_out_noc','ch_out_noc'], \
+                      # ['row_out_noc','col_out_noc','ch_out_noc'], \
+                      # ]
+        
         
         #row stationary2
+        self.rs2_noc=[]
+        self.rs2_rf_gb_tiling_choices=[]
+        self.rs2_rf_gb_tiling_choices_num=[]
+        for i in range(len(input_dnn)):
+            self.rs2_noc.append([])
+            self.rs2_rf_gb_tiling_choices.append([])
+            self.rs2_rf_gb_tiling_choices_num.append([])
+            ch_in_choices=sorted(r_factors(input_dnn[i][1]['ch_in'][0]))
+            ch_out_choices=sorted(r_factors(input_dnn[i][1]['ch_out'][0]))
+            col_out_choices=sorted(r_factors(input_dnn[i][1]['col_out'][0]))
+            col_kernel_choices=sorted(r_factors(input_dnn[i][1]['col_kernel'][0]))
+            
+            
+            pe_designs=[]
+            str1=[]
+            for m in ch_in_choices:
+                for l in ch_out_choices:
+                    for j in col_out_choices:
+                        if m*l*j*input_dnn[i][1]['col_kernel'][0] <= self.dsp_limit:
+                            pe_designs.append(m*l*j*input_dnn[i][1]['col_kernel'][0])
+                            str1.append((m,l,j,input_dnn[i][1]['col_kernel'][0]))
+            pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
+            #print(pe_designs[1:10])
+            
+            for pe_design in pe_designs[0:self.pe_array_dim_num]:
+                self.rs2_noc[-1].append({})
+                self.rs2_rf_gb_tiling_choices[-1].append({})
+                self.rs2_rf_gb_tiling_choices_num[-1].append([])
+                self.rs2_noc[-1][-1]['ch_in_noc']=pe_design[0]
+                self.rs2_noc[-1][-1]['ch_out_noc']=pe_design[1]
+                self.rs2_noc[-1][-1]['col_out_noc']=pe_design[2]
+                self.rs2_noc[-1][-1]['col_kernel_noc']=pe_design[3]
+                
+                self.rs2_rf_gb_tiling_choices[-1][-1]['ch_in_rf_gb_choices']=factor_n(input_dnn[i][1]['ch_in'][0]//self.rs2_noc[-1][-1]['ch_in_noc'],3)
+                self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['ch_in_rf_gb_choices']))
+                
+                self.rs2_rf_gb_tiling_choices[-1][-1]['ch_out_rf_gb_choices']=factor_n(input_dnn[i][1]['ch_out'][0]//self.rs2_noc[-1][-1]['ch_out_noc'],3)
+                self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['ch_out_rf_gb_choices']))
+                
+                self.rs2_rf_gb_tiling_choices[-1][-1]['col_out_rf_gb_choices']=factor_n(input_dnn[i][1]['col_out'][0]//self.rs2_noc[-1][-1]['col_out_noc'],3)
+                self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['col_out_rf_gb_choices']))
+                
+                self.rs2_rf_gb_tiling_choices[-1][-1]['row_out_rf_gb_choices']=factor_n(input_dnn[i][1]['row_out'][0],3)
+                self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['row_out_rf_gb_choices']))
+            
+                self.rs2_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']=[[1,1,1]]
+                self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']))    
+
+                self.rs2_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']=factor_n(input_dnn[i][1]['row_kernel'][0],3)
+                self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']))                 
+
+                self.rs2_rf_gb_tiling_choices[-1][-1]['batch_rf_gb_choices']=factor_n(input_dnn[i][1]['batch'][0],3)
+                self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['batch_rf_gb_choices']))
+
+        
     def choices_generation(self,pe_array):
         if pe_array==0:
             return self.ws_rf_gb_tiling_choices_num,self.ws_rf_gb_tiling_choices
     def tiling_translation(self,layer,pe_array,pe_array_dim_choices,rf_gb_choices,rf_gb_choices_order):
         #pe_array 0-3
-        #pe_array_dim_choices 0-9
+        #pe_array_dim_choices 0-self.pe_array_dim_num(10)
         #rf_gb_choices n*  5 for ws, 7 for os
         #rf_gb_choices_order 0-5 * 5 for ws, 7 for os
         #single layer
@@ -902,14 +1008,23 @@ class asic_tiling_generator():
             tiling_str['batch_dram']=batch_tiling[2]
             tiling_str['col_kernel_rf']=tiling_str['col_kernel_gb']=tiling_str['col_kernel_dram']=1
             tiling_str['row_kernel_rf']=tiling_str['row_kernel_gb']=tiling_str['row_kernel_dram']=1
-        elif pe_array==3:
-            ch_in_rf_gb_choice=self.os_rf_gb_tiling_choices[layer][pe_array_dim_choices]['ch_in_rf_gb_choices'][rf_gb_choices[0]]
-            ch_out_rf_gb_choice=self.os_rf_gb_tiling_choices[layer][pe_array_dim_choices]['ch_out_rf_gb_choices'][rf_gb_choices[1]]
-            col_out_rf_gb_choice=self.os_rf_gb_tiling_choices[layer][pe_array_dim_choices]['col_out_rf_gb_choices'][rf_gb_choices[2]]
-            row_out_rf_gb_choice=self.os_rf_gb_tiling_choices[layer][pe_array_dim_choices]['row_out_rf_gb_choices'][rf_gb_choices[3]]
-            col_kernel_rf_gb_choice=self.os_rf_gb_tiling_choices[layer][pe_array_dim_choices]['col_kernel_rf_gb_choices'][rf_gb_choices[4]]
-            row_kernel_rf_gb_choice=self.os_rf_gb_tiling_choices[layer][pe_array_dim_choices]['row_kernel_rf_gb_choices'][rf_gb_choices[5]]
-            batch_rf_gb_choice=self.os_rf_gb_tiling_choices[layer][pe_array_dim_choices]['batch_rf_gb_choices'][rf_gb_choices[6]]
+        else:
+            if pe_array==1:
+                rf_gb_tiling_choices=self.rs2_rf_gb_tiling_choices
+                noc=self.rs2_noc
+            elif pe_array==2:
+                rf_gb_tiling_choices=self.rs1_rf_gb_tiling_choices
+                noc=self.rs1_noc
+            elif pe_array==3:
+                rf_gb_tiling_choices=self.os_rf_gb_tiling_choices
+                noc=self.os_noc
+            ch_in_rf_gb_choice=rf_gb_tiling_choices[layer][pe_array_dim_choices]['ch_in_rf_gb_choices'][rf_gb_choices[0]]
+            ch_out_rf_gb_choice=rf_gb_tiling_choices[layer][pe_array_dim_choices]['ch_out_rf_gb_choices'][rf_gb_choices[1]]
+            col_out_rf_gb_choice=rf_gb_tiling_choices[layer][pe_array_dim_choices]['col_out_rf_gb_choices'][rf_gb_choices[2]]
+            row_out_rf_gb_choice=rf_gb_tiling_choices[layer][pe_array_dim_choices]['row_out_rf_gb_choices'][rf_gb_choices[3]]
+            col_kernel_rf_gb_choice=rf_gb_tiling_choices[layer][pe_array_dim_choices]['col_kernel_rf_gb_choices'][rf_gb_choices[4]]
+            row_kernel_rf_gb_choice=rf_gb_tiling_choices[layer][pe_array_dim_choices]['row_kernel_rf_gb_choices'][rf_gb_choices[5]]
+            batch_rf_gb_choice=rf_gb_tiling_choices[layer][pe_array_dim_choices]['batch_rf_gb_choices'][rf_gb_choices[6]]
             ch_in_tiling=list(permutations(ch_in_rf_gb_choice))[rf_gb_choices_order[0]]
             ch_out_tiling=list(permutations(ch_out_rf_gb_choice))[rf_gb_choices_order[1]]
             col_out_tiling=list(permutations(col_out_rf_gb_choice))[rf_gb_choices_order[2]]
@@ -917,7 +1032,7 @@ class asic_tiling_generator():
             col_kernel_tiling=list(permutations(col_kernel_rf_gb_choice))[rf_gb_choices_order[4]]
             row_kernel_tiling=list(permutations(row_kernel_rf_gb_choice))[rf_gb_choices_order[5]]
             batch_tiling=list(permutations(batch_rf_gb_choice))[rf_gb_choices_order[6]]
-            tiling_str=dict(self.os_noc[layer][pe_array_dim_choices])
+            tiling_str=dict(noc[layer][pe_array_dim_choices])
             tiling_str['ch_in_rf']=ch_in_tiling[0]
             tiling_str['ch_out_rf']=ch_out_tiling[0]
             tiling_str['col_out_rf']=col_out_tiling[0]
@@ -940,8 +1055,15 @@ class asic_tiling_generator():
             tiling_str['row_kernel_dram']=row_kernel_tiling[2]
             tiling_str['batch_dram']=batch_tiling[2]
         return tiling_str
-
-
+    def tiling_space_partition(self, pe_array,layer,pe_array_dim_choices):
+        if pe_array==0:
+            return self.ws_rf_gb_tiling_choices_num[layer]
+        elif pe_array==1:
+            return self.rs2_rf_gb_tiling_choices_num[layer][pe_array_dim_choices]
+        elif pe_array==2:
+            return self.rs1_rf_gb_tiling_choices_num[layer][pe_array_dim_choices]
+        elif pe_array==3:
+            return self.os_rf_gb_tiling_choices_num[layer][pe_array_dim_choices]
     
 #ISSUE with this verison: no trade off between bandwidth and size is present
 # def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_space=False,bit_width=16): 
