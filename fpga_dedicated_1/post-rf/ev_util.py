@@ -665,6 +665,9 @@ def random_life(df_order, tiling_pool,input_stride_list,hw_spec,alloc_slots,rf_n
 
 
 def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_space=False,bit_width=16):
+    #current assumptions: at least a whole channel of ifmap, ofmap or kernel will be put into the buffer 
+    #low buffer utilization
+    #did not specify cross instance read/write...
     tmp_layer=1
     ch_in=[]
     ch_out=[]
@@ -703,13 +706,18 @@ def fpga_tiling_generator(input_dnn,buffer_limit,dsp_limit,return_partitioned_sp
     input_b_size=ch_in_bram*row_out_bram*col_out_bram*bit_width
     weight_b_size=ch_in_bram*ch_out_bram*col_kernel_bram*row_kernel_bram*bit_width
     f_index=0
+    out_ch_decr=False
     while (output_b_size+input_b_size+weight_b_size) > buffer_limit:
         if (len(input_dnn)>1):
             raise Exception('Buffer exceeded') 
         print('buffer exceeded, retry tiling')
         f_index+=1
-        ch_out_bram=sorted(r_factors(ch_out[0]),reverse=True)[min(len(r_factors(ch_out[0]))-1,f_index)]
-        ch_in_bram=sorted(r_factors(ch_in[0]),reverse=True)[min(len(r_factors(ch_in[0]))-1,f_index)]
+        if out_ch_decr:
+            ch_out_bram=sorted(r_factors(ch_out[0]),reverse=True)[min(len(r_factors(ch_out[0]))-1,f_index)]
+            out_ch_decr=(not out_ch_decr)
+        else:
+            ch_in_bram=sorted(r_factors(ch_in[0]),reverse=True)[min(len(r_factors(ch_in[0]))-1,f_index)]
+            out_ch_decr=(not out_ch_decr)
         output_b_size=ch_out_bram*col_out_bram*row_out_bram*bit_width
         input_b_size=ch_in_bram*row_out_bram*col_out_bram*bit_width
         weight_b_size=ch_in_bram*ch_out_bram*col_kernel_bram*row_kernel_bram*bit_width
