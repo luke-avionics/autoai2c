@@ -149,8 +149,8 @@ for _ in range(100):
 
     #choose the applicable tiling space
     #!!!ATTENTION HERE!!!
-    #1. you need to decide which layer of the network you are optimizing on when fixing lp_order
-    #2. you need to specify the pe_array_dim_choices style, to favor different trade off sizes among each pe dimension;
+    #
+    #1. you need to specify the pe_array_dim_choices style, to favor different trade off sizes among each pe dimension;
     #           currently it is under 10, i.e. 0-9
     layer=0
     pe_array_dim_choices=randint(0,9)
@@ -165,7 +165,7 @@ for _ in range(100):
     #you need to specify in which order these chunks will be assigned to each memory respectively
     #the following tiling_choices_order will do so
     #tiling_choices_order is a list with the same size as tiling_choices
-    #                                     each element is a number from 0 to 5, specify 6 different choices
+    #                                     each element is a number from 0 to 1, specify 2 different choices
     tiling_choices_order=[]
     for i in range(len(tiling_choices)):
         tiling_choices_order.append(randint(0,1))
