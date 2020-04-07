@@ -29,13 +29,14 @@ def ema(values):
 
 class Controller(object):
 
-    def __init__(self,tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec):
+    def __init__(self,tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec,initial_input=[]):
         self.graph = tf.Graph()
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         self.sess = tf.Session(config=config, graph=self.graph)
         self.controller_params=controller_params
+        self.initial_input=initial_input
         self.pe_array=pe_array
         self.pe_array_dim_choices=pe_array_dim_choices
         self.tiling1=tiling1
@@ -78,6 +79,7 @@ class Controller(object):
         self.sample_num=0
         self.score_list=[]
         self.current_best=np.inf
+        self.current_best_design=None
     def build_controller(self):
         logger.info('Building RNN Network')
         # Build inputs and placeholders
@@ -254,7 +256,10 @@ class Controller(object):
             self.sess.run(tf.global_variables_initializer())
         step = 0
         total_rewards = 0
-        child_network = np.array([[0] * self.num_para], dtype=np.int64)
+        if len(self.initial_input) !=0:
+            child_network=self.initial_input
+        else:
+            child_network = np.array([[0] * self.num_para], dtype=np.int64)
         #print(self.num_para)
         for episode in range(self.controller_params['max_episodes']):
             step += 1
@@ -318,6 +323,7 @@ class Controller(object):
                         reward = max(norm_HW_Eff , -1)
                         if HW_Eff <self.current_best:
                             self.current_best=HW_Eff
+                            self.current_best_design=child_network
                         # Help us to build the history table to avoid optimization for the same network
                         # Weiwen 01-24: We comment this for exploration of hardware
                         # self.explored_info[str_NNs] = {}

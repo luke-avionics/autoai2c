@@ -118,10 +118,49 @@ sample_num=0
 # print(len(controller_params_pool[-1]["hw_space"]))
 # exit()
 best=np.inf
-for pe_array in range(4):
-    print(sample_num)
-    print(best)
-    for pe_array_dim_choices in range(10):
+best_design=None
+# for pe_array in range(4):
+    # print(sample_num)
+    # print(best)
+    # for pe_array_dim_choices in range(10):
+        # controller_params=controller_params_pool[pe_array*10+pe_array_dim_choices]
+        # seed = 0
+        # torch.manual_seed(seed)
+        # random.seed(seed)
+        # logging.basicConfig(stream=sys.stdout,
+                            # level=logging.DEBUG,
+                            # format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+
+        # print("Begin")
+        # controller = Controller(tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec)
+        # controller.global_train()
+        # sample_num+=controller.sample_num
+        # if controller.current_best<best:
+            # best=controller.current_best
+            # best_design=controller.current_best_design
+# print(sample_num)
+# print(best)
+
+
+
+
+
+trial=[]
+for _ in range(10):   
+    design_history={}
+    for i in range(40):
+        design_history[i]=[]
+    sample_num=0  
+    best=np.inf
+    best_design=None
+    for _ in range(4):
+        print("="*10)
+        print('new run')
+        print(sample_num)
+        print(best)      
+        print(best_design) 
+        pe_array=random.randint(0,3)
+        pe_array_dim_choices=random.randint(0,9)
         controller_params=controller_params_pool[pe_array*10+pe_array_dim_choices]
         seed = 0
         torch.manual_seed(seed)
@@ -131,33 +170,15 @@ for pe_array in range(4):
                             format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 
         print("Begin")
-        controller = Controller(tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec)
+        controller = Controller(tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec,initial_input=design_history[pe_array*10+pe_array_dim_choices])
         controller.global_train()
         sample_num+=controller.sample_num
+        design_history[pe_array*10+pe_array_dim_choices]=controller.current_best_design
         if controller.current_best<best:
             best=controller.current_best
-print(sample_num)
-print(best)
-
-
-
-for _ in range(40):
-    pe_array=random.randint(0,3)
-    pe_array_dim_choices=random.randint(0,9)
-    controller_params=controller_params_pool[pe_array*10+pe_array_dim_choices]
-    seed = 0
-    torch.manual_seed(seed)
-    random.seed(seed)
-    logging.basicConfig(stream=sys.stdout,
-                        level=logging.DEBUG,
-                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-
-    print("Begin")
-    controller = Controller(tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec)
-    controller.global_train()
-    sample_num+=controller.sample_num
-    if controller.current_best<best:
-        best=controller.current_best
-print(sample_num)
-print(best)        
-            
+            best_design=controller.current_best_design        
+    print(sample_num)
+    print(best)      
+    print(best_design)
+    trial.append((sample_num,best))
+print(trial)                

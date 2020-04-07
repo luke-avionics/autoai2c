@@ -133,8 +133,8 @@ tmp_hw_spec={\
 #generate the design space of all possible tiling factors
 #the space is partitioned according to alloc_slots based on the rf_noc_template choice (PE array)
 tiling1=fpga_tiling_generator(input_dnn,tmp_hw_spec)
-
-for _ in range(100):
+score=[]
+for _ in range(500):
     #pick a pe array
     pe_array=randint(0,3)
     pe_array=0
@@ -178,7 +178,9 @@ for _ in range(100):
     tiling_string=tiling1.tiling_translation(layer,pe_array,pe_array_dim_choices,tiling_choices,tiling_choices_order)
     #pass for EDP feedback
     #print(pe_array)
-    print(life_eval(tiling_string,1,tmp_hw_spec,df_order=lp_order_string))
+    if life_eval(tiling_string,1,tmp_hw_spec,df_order=lp_order_string)[1]:
+        score.append(life_eval(tiling_string,1,tmp_hw_spec,df_order=lp_order_string)[0])
+    print(sorted(score,reverse=True)[0])
 
 
 
