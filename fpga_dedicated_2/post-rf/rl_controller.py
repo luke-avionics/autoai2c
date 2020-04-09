@@ -79,7 +79,7 @@ class Controller(object):
         self.sample_num=0
         self.score_list=[]
         self.current_best=np.inf
-        self.current_best_design=None
+        self.current_best_design=[]
     def build_controller(self):
         logger.info('Building RNN Network')
         # Build inputs and placeholders

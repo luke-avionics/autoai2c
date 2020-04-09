@@ -71,7 +71,7 @@ controller_params = {
     #"sw_space": ([3],[3],[16],[1],[1],[2],[4]),
     # dataflow 1, dataflow 2, PE for d1, BW for d1
     "hw_space": [],
-    'max_episodes': 10,
+    'max_episodes': 40,
     "num_children_per_episode": 1,
     "num_hw_per_child": 10,
     'hidden_units': 35,
@@ -146,6 +146,8 @@ best_design=None
 
 
 trial=[]
+trial_design=[]
+trial_best_ts=[]
 for _ in range(10):   
     design_history={}
     for i in range(40):
@@ -153,7 +155,8 @@ for _ in range(10):
     sample_num=0  
     best=np.inf
     best_design=None
-    for _ in range(4):
+    best_ts=None
+    for _ in range(25):
         print("="*10)
         print('new run')
         print(sample_num)
@@ -162,9 +165,9 @@ for _ in range(10):
         pe_array=random.randint(0,3)
         pe_array_dim_choices=random.randint(0,9)
         controller_params=controller_params_pool[pe_array*10+pe_array_dim_choices]
-        seed = 0
-        torch.manual_seed(seed)
-        random.seed(seed)
+        #seed = 0
+        #torch.manual_seed(seed)
+        #random.seed(seed)
         logging.basicConfig(stream=sys.stdout,
                             level=logging.DEBUG,
                             format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
@@ -176,9 +179,14 @@ for _ in range(10):
         design_history[pe_array*10+pe_array_dim_choices]=controller.current_best_design
         if controller.current_best<best:
             best=controller.current_best
-            best_design=controller.current_best_design        
+            best_design=(pe_array, pe_array_dim_choices,controller.current_best_design)
+            best_ts=sample_num        
     print(sample_num)
     print(best)      
     print(best_design)
     trial.append((sample_num,best))
-print(trial)                
+    trial_design.append(best_design)
+    trial_best_ts.append(best_ts)
+print(trial)
+print(trial_best_ts)
+print(trial_design)                
