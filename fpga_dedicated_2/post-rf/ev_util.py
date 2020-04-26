@@ -1317,4 +1317,58 @@ def performance_feedback(tiling1,pe_array,pe_array_dim_choices,param,tmp_hw_spec
     lp_order_string=dram_invariant_looporder(pe_array, param[0:7], param[7:14])
     tiling_string=tiling1.tiling_translation(0,pe_array,pe_array_dim_choices,param[14:21],param[21:28])
     p=life_eval(tiling_string,1,tmp_hw_spec,df_order=lp_order_string)
-    return p
+    return 4*p
+    
+    
+def translate_raw_param(tiling1,pe_array,pe_array_dim_choices,param,tmp_hw_spec):
+    lp_order_string=dram_invariant_looporder(pe_array, param[0:7], param[7:14])
+    tiling_string=tiling1.tiling_translation(0,pe_array,pe_array_dim_choices,param[14:21],param[21:28])
+    return lp_order_string,tiling_string, tmp_hw_spec
+
+def resource_allocator(input_dnn,gb,pe):
+    para=[]
+    comp=[]
+    gb_all=[]
+    pe_all=[]
+    for layer in input_dnn:
+        para.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                    layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                    layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
+                    layer[1]['row_out'][0])
+        comp.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                    layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                    layer[1]['row_out'][0])
+    for i in para:
+        gb_all.append(i/sum(para)*gb)
+    for i in comp:
+        pe_all.append(i/sum(comp)*pe)
+    return gb_all,pe_all
+def hw_consumption(lp_order_string,tiling_string,hw_spec,stride):
+    noc_consumption=1
+    for i in tiling_string:
+        if 'noc' in i:
+            noc_consumption*=tiling_string[i]
+    tmp_hw_spec=copy.deepcopy(hw_spec)
+    ep=tmp_hw_spec['gb_vol']
+    tmp_hw_spec['gb_vol']=int(tmp_hw_spec['gb_vol']/2)
+    mp=tmp_hw_spec['gb_vol']
+    sp=0
+    p=life_eval(tiling_string,1,hw_spec,df_order=lp_order_string)
+    while (ep-sp)>100 or (not p[1]):
+        if p[1]:
+            tmp_hw_spec['gb_vol']=math.floor((sp+mp)/2)
+            ep=mp
+            mp=tmp_hw_spec['gb_vol']
+            p=life_eval(tiling_string,stride,tmp_hw_spec,df_order=lp_order_string)
+        else:
+            tmp_hw_spec['gb_vol']=math.ceil((mp+ep)/2)
+            sp=mp
+            mp=tmp_hw_spec['gb_vol']
+            p=life_eval(tiling_string,stride,tmp_hw_spec,df_order=lp_order_string)
+    return noc_consumption/tmp_hw_spec['num_pe'],tmp_hw_spec['gb_vol']/hw_spec['gb_vol']
+    
+df_order=['row_out_noc', 'col_out_noc', 'ch_out_noc', 'batch_gb',  'col_out_gb', 'ch_out_gb', 'row_out_gb', 'row_kernel_gb', 'col_kernel_gb', 'ch_in_gb','col_kernel_dram', 'ch_out_dram', 'ch_in_dram', 'row_kernel_dram', 'col_out_dram', 'batch_dram', 'row_out_dram']
+df_dict={'ch_out_noc': 16, 'col_out_noc': 1, 'row_out_noc': 8, 'ch_in_gb': 128, 'ch_out_gb': 1, 'col_kernel_gb': 1, 'row_kernel_gb': 3, 'col_out_gb': 1, 'row_out_gb': 1, 'batch_gb': 1, 'ch_in_dram': 1, 'ch_out_dram': 16, 'col_out_dram': 56, 'row_out_dram': 7, 'col_kernel_dram': 3, 'row_kernel_dram': 1, 'batch_dram': 1}
+hw_spec={'gb_vol': 2097152, 'rf_vol': 512, 'num_pe': 144, 'num_rf': 144}
+   
+print(hw_consumption(df_order,df_dict,hw_spec,1))
