@@ -195,7 +195,7 @@ def pe_array_dimention_optimizer(input_dnn,tmp_hw_spec, range_c=0.9, considerati
         score=0
         for layer in input_dnn:
             score+=(math.ceil(layer[1]['col_kernel'][0]/i[0])+ math.ceil(layer[1]['row_kernel'][0]/i[1])\
-                    +math.ceil(layer[1]['ch_in'][0]/i[2]) +    math.ceil(layer[1]['ch_out'][0]/i[3]))
+                    +math.ceil(layer[1]['ch_in'][0]/i[2]) + math.ceil(layer[1]['ch_out'][0]/i[3]))
         score_board.append(score)
     pe_array_pool[0]+=[i[1] for i in sorted(zip(score_board,dim_4))][0:consideration_range]
 

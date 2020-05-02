@@ -553,6 +553,195 @@ class plt_config1(object):
         # except:
         # pass
 
+    def dw_conv_df(self, stride, df_order_in, df_config_dict_in, bits_activation, bits_weight, bw_gb_to_noc_dict,
+                bw_rf_to_alu_dict):
+        all_dims = ['batch', 'ch_out','row_out', 'col_out', 'row_kernel', 'col_kernel']
+        all_lvls = ['dram', 'gb', 'noc', 'rf']
+        all_orders = ['batch_dram', 'batch_gb', 'batch_noc', 'batch_rf',
+                      'ch_out_dram', 'ch_out_gb', 'ch_out_noc', 'ch_out_rf',
+                      'row_out_dram', 'row_out_gb', 'row_out_noc', 'row_out_rf',
+                      'col_out_dram', 'col_out_gb', 'col_out_noc', 'col_out_rf',
+                      'row_kernel_dram', 'row_kernel_gb', 'row_kernel_noc', 'row_kernel_rf',
+                      'col_kernel_dram', 'col_kernel_gb', 'col_kernel_noc', 'col_kernel_rf']
+        out_related = ['batch', 'ch_out', 'row_out', 'col_out']
+        in_related = ['batch', 'ch_out', 'row_out', 'col_out', 'row_kernel', 'col_kernel']
+        we_related = ['ch_out', 'row_kernel', 'col_kernel']
+        all_data_types = ['in', 'out', 'we']  # input, output and weight
+        all_refresh_locs = ['ref_gb_in', 'ref_gb_out', 'ref_gb_we', 'ref_rf_in', 'ref_rf_out', 'ref_rf_we']
+        # print (len(df_order_in))
+        df_order = copy.deepcopy(df_order_in)
+        df_config_dict = copy.deepcopy(df_config_dict_in)
+        for name in all_orders:
+            if ('noc' in name) and (name not in df_order):
+                df_order.append(name)
+                df_config_dict[name] = 1.0
+        num_active_pes = 1.0
+        for i, df in enumerate(df_order):
+            if df not in df_config_dict:
+                # print('df_list and df_config_dict should be consistent')
+                print(i)
+                print(df)
+                raise Exception('df_list {} and df_config_dict {} should be consistent'.format(i, df))
+            if ('noc' in df) and (df in all_orders):
+                num_active_pes *= df_config_dict[df]
+
+        prod_out = 1.0
+        prod_we = 1.0
+        prod_plane = 1.0
+        prod_inrow = 1.0
+        prod_incol = 1.0
+        prod_krow = 1.0
+        prod_kcol = 1.0
+        # cur_in = prod_plane*(prod_krow + stride*(prod_inrow-1))*(prod_kcol + stride*(prod_incol-1))
+        # cur_out = prod_out
+        # cur_we = prod_we
+
+        # try:
+        basic_add = self.add(bits_activation)
+        basic_mul = self.mul(bits_activation, bits_weight)
+        mac_one_pe = temp_merge(basic_add, basic_mul, self.plt)
+        mac = opr_sum((int)(num_active_pes) * [mac_one_pe], self.plt, 'spatial')
+        rf_to_alu_in_one_pe = self.rf_to_alu(bits_activation, bw_rf_to_alu_dict['in'])
+        rf_to_alu_in = opr_sum((int)(num_active_pes) * [rf_to_alu_in_one_pe], self.plt, 'spatial')
+        rf_to_alu_out_one_pe = self.rf_to_alu(bits_activation, bw_rf_to_alu_dict['out'])
+        rf_to_alu_out = opr_sum((int)(num_active_pes) * [rf_to_alu_out_one_pe], self.plt, 'spatial')
+        rf_to_alu_we_one_pe = self.rf_to_alu(bits_weight, bw_rf_to_alu_dict['we'])
+        rf_to_alu_we = opr_sum((int)(num_active_pes) * [rf_to_alu_we_one_pe], self.plt, 'spatial')
+        opr_first = opr_sum([rf_to_alu_in, rf_to_alu_we, mac, rf_to_alu_out], self.plt,
+                            'temp')  # no psum read (only psum write) for the first,
+        opr_other = temp_merge(rf_to_alu_out, opr_first, self.plt)  # psum read/write for the rest
+        # print("basic_add_energy="+ str(basic_add.energy))
+        # print("basic_mul_energy="+ str(basic_mul.energy))
+        # print("mac_one_pe_energy="+ str(mac_one_pe.energy))
+        # print("rf_to_alu_in_one_pe="+ str(rf_to_alu_in_one_pe.energy))
+        # print("rf_to_alu_out_one_pe="+ str(rf_to_alu_out_one_pe.energy))
+        # print("rf_to_alu_we_one_pe="+ str(rf_to_alu_we_one_pe.energy))
+        E_comp = [0.0, 0.0]
+        E_dram_to_gb = [0.0, 0.0]
+        E_gb_to_noc = [0.0, 0.0]
+        E_noc_to_rf = [0.0, 0.0]
+        E_rf_to_alu = [0.0, 0.0]
+        E_breakdown = [E_comp, E_dram_to_gb, E_gb_to_noc, E_noc_to_rf, E_rf_to_alu]
+        E_breakdown[0][0] += mac.energy
+        E_breakdown[0][1] += mac.energy
+        E_breakdown[4][0] += rf_to_alu_in.energy + rf_to_alu_we.energy + rf_to_alu_out.energy
+        E_breakdown[4][1] += rf_to_alu_in.energy + rf_to_alu_we.energy + 2 * rf_to_alu_out.energy
+        # print (df_order)
+        rf_volume_used = 0
+        gb_volume_used = 0
+        for df in df_order:
+            if df in all_refresh_locs:
+                # print (df)
+                # print ('fuck')
+                bw = df_config_dict[df]
+
+                if 'in' in df:
+                    bits1 = prod_plane * (prod_krow + stride * (prod_inrow - 1)) * (
+                            prod_kcol + stride * (prod_incol - 1)) * bits_activation
+                    bits2 = prod_plane * df_config_dict['batch_noc'] * df_config_dict['ch_out_noc'] \
+                            * (prod_krow * df_config_dict['row_kernel_noc'] + stride * (
+                            prod_inrow * df_config_dict['row_out_noc'] - 1)) \
+                            * (prod_kcol * df_config_dict['col_kernel_noc'] + stride * (
+                            prod_incol * df_config_dict['col_out_noc'] - 1)) * bits_activation
+                    bw_gb_to_noc = bw_gb_to_noc_dict['in']
+                elif 'we' in df:
+                    bits1 = prod_we * bits_weight
+                    bits2 = bits1 * df_config_dict['ch_out_noc'] * df_config_dict[
+                        'row_kernel_noc'] * df_config_dict['col_kernel_noc']
+                    bw_gb_to_noc = bw_gb_to_noc_dict['we']
+                elif 'out' in df:
+                    bits1 = prod_out * bits_activation
+                    bits2 = bits1 * df_config_dict['batch_noc'] * df_config_dict['ch_out_noc'] * df_config_dict[
+                        'row_out_noc'] * df_config_dict['col_out_noc']
+                    bw_gb_to_noc = bw_gb_to_noc_dict['out']
+                else:
+                    print(df)
+                    print('error in function conv_df about in, out, we')
+                    sys.exit(-1)
+
+                if 'rf' in df:
+                    rf_volume_used += bits1
+                    comm_opr1_one_pe = self.noc_to_rf(bits1, df_config_dict[df])
+                    comm_opr1 = opr_sum((int)(num_active_pes) * [comm_opr1_one_pe], self.plt, 'spatial')
+                    comm_opr2 = self.gb_to_noc(bits2, bw_gb_to_noc)
+                    comm_opr = temp_merge(comm_opr1, comm_opr2, self.plt)
+                    if 'out' in df:
+                        opr_first = temp_merge(opr_first, comm_opr, self.plt)
+                        opr_other = opr_sum([comm_opr, opr_other, comm_opr], self.plt, 'temp')
+                        E_breakdown[3][0] += comm_opr1.energy
+                        E_breakdown[3][1] += 2 * comm_opr1.energy
+                        E_breakdown[2][0] += comm_opr2.energy
+                        E_breakdown[2][1] += 2 * comm_opr2.energy
+                    else:
+                        opr_first = temp_merge(opr_first, comm_opr, self.plt)
+                        opr_other = temp_merge(opr_other, comm_opr, self.plt)
+                        E_breakdown[3][0] += comm_opr1.energy
+                        E_breakdown[3][1] += comm_opr1.energy
+                        E_breakdown[2][0] += comm_opr2.energy
+                        E_breakdown[2][1] += comm_opr2.energy
+                elif 'gb' in df:
+                    gb_volume_used += bits2
+                    comm_opr = self.dram_to_gb(bits2, df_config_dict[df])
+                    if 'out' in df:
+                        opr_first = temp_merge(opr_first, comm_opr, self.plt)
+                        opr_other = opr_sum([comm_opr, opr_other, comm_opr], self.plt, 'temp')
+                        E_breakdown[1][0] += comm_opr.energy
+                        E_breakdown[1][1] += 2 * comm_opr.energy
+                    else:
+                        opr_first = temp_merge(opr_first, comm_opr, self.plt)
+                        opr_other = temp_merge(opr_other, comm_opr, self.plt)
+                        E_breakdown[1][0] += comm_opr.energy
+                        E_breakdown[1][1] += comm_opr.energy
+                else:
+                    print(df)
+                    print('error in function conv_df about rf, noc, gb')
+                    sys.exit(-1)
+
+
+            elif (df in all_orders) and ('noc' in df):
+                continue
+            elif (df in all_orders) and ('noc' not in df):
+                # print (df)
+                # print (opr_first.time)
+                # print (opr_other.time)
+                opr_first = opr_sum([opr_first] + ((int)(df_config_dict[df] - 1)) * [opr_other], self.plt, 'temp')
+                opr_other = opr_first
+                for i in range(5):
+                    e_first = E_breakdown[i][0]
+                    e_other = E_breakdown[i][1]
+                    E_breakdown[i][0] = e_first + (df_config_dict[df] - 1) * e_other
+                    E_breakdown[i][1] = E_breakdown[i][0]
+                for name in out_related:
+                    if name in df:
+                        prod_out *= df_config_dict[df]
+                for name in we_related:
+                    if name in df:
+                        prod_we *= df_config_dict[df]
+                if ('batch' in df) or ('ch_out' in df):
+                    prod_plane *= df_config_dict[df]
+                if ('row_out' in df):
+                    prod_inrow *= df_config_dict[df]
+                if ('col_out' in df):
+                    prod_incol *= df_config_dict[df]
+                if ('row_kernel' in df):
+                    prod_krow *= df_config_dict[df]
+                if ('col_kernel' in df):
+                    prod_kcol *= df_config_dict[df]
+                # print ('fuck')
+            else:
+                print(df)
+                print('error in function conv_df')
+                sys.exit(-1)
+        opr_conv = opr_first
+        # check if rf and gb volume is enough
+        # print (gb_volume_used)
+        opr_rf = self.occupy_volume(rf_volume_used, 'rf')
+        # print (opr_rf.energy)
+        opr_gb = self.occupy_volume(gb_volume_used, 'gb')
+        return E_breakdown, opr_conv, opr_rf, opr_gb, num_active_pes
+        # except:
+        # pass
+
 
 #     the seqence can be changed inside each row, the sequence for different rows is fixed row1<row2<row3<row4 (rf->noc->gb->dram)
 #     row1 :col_kernel_rf, row_kernel_rf, col_out_rf, row_out_rf, ch_in_rf, ch_out_rf, batch_rf,

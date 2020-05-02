@@ -13,86 +13,7 @@ from ev_dict_object import *
 import scipy.io as sio
 
 
-def dram_variant_looporder(input_lp_order_dram,input_lp_order_sram):
-    return None
 
-
-#def dram_invariant_looporder(input_lp_order):
-#    # input_lp_order:[range(0,4),                                                                           ]
-#    #                 pe_array  ,1st pos   ,2nd pos   , 3rd pos  , .........................................
-#    if not len(input_lp_order[1:])==len(set(input_lp_order[1:])):
-#        raise Exception('Please provide lp_order with no duplicate elements')
-#    input_rf=rf_noc_template[input_lp_order[0]]
-#    lp_order_template_dram=['col_out_dram', 'ch_out_dram', 'batch_dram','ch_in_dram','row_out_dram','col_kernel_dram','row_kernel_dram']
-#    lp_order_template=['ref_gb_we','ch_out_gb', 'ref_gb_in','ch_in_gb','col_kernel_gb', 'row_out_gb','batch_gb','col_out_gb','row_kernel_gb','ref_gb_out']
-#    lp_order_string=[]
-#    input_actions=input_lp_order[1:12]
-#    for i in range(len(lp_order_template)):
-#        lp_order_string.append(lp_order_template[input_actions[i]])
-#    index_lst=list(range(len(lp_order_template_dram)))
-#    shuffle(index_lst)
-#    for i in index_lst:
-#        lp_order_string.append(lp_order_template_dram[i])
-#    return copy.deepcopy(input_rf)+copy.deepcopy(lp_order_string)
-
-# def dram_invariant_looporder(pe_array, input_lp_order_dram, input_lp_order_gb,input_lp_order_rf):
-    # # input_lp_order:[range(0,4),                                                                           ]
-    # #                 pe_array  ,1st pos   ,2nd pos   , 3rd pos  , .........................................
-    
-    # input_lp_order_dram=copy.deepcopy(input_lp_order_dram)
-    # input_lp_order_gb=copy.deepcopy(input_lp_order_gb)
-    # input_lp_order_rf=copy.deepcopy(input_lp_order_rf)
-    # if not (len(input_lp_order_gb)==len(set(input_lp_order_gb)) and len(input_lp_order_dram)==len(set(input_lp_order_dram))):
-        # raise Exception('Please provide lp_order with no duplicate elements')
-    # input_rf=copy.deepcopy(rf_noc_template[pe_array])
-    # lp_order_template_dram=['col_out_dram', 'ch_out_dram', 'batch_dram','ch_in_dram','row_out_dram','col_kernel_dram','row_kernel_dram']
-    # lp_order_template_gb=['ch_out_gb','ch_in_gb','col_kernel_gb', 'row_out_gb','batch_gb','col_out_gb','row_kernel_gb']
-    # lp_order_template_rf= ['col_out_rf', 'batch_rf', 'row_out_rf', 'ch_out_rf', 'row_kernel_rf',  'ch_in_rf',  'col_kernel_rf']
-
-    # lp_order_string=[]
-    # for i in range(len(lp_order_template_rf)):
-        # lp_order_string.append(lp_order_template_rf[input_lp_order_rf[i]])
-    # lp_order_string+=input_rf
-    # for i in range(len(lp_order_template_gb)):
-        # lp_order_string.append(lp_order_template_gb[input_lp_order_gb[i]])
-    # for i in range(len(lp_order_template_dram)):
-        # lp_order_string.append(lp_order_template_dram[input_lp_order_dram[i]])
-    # return copy.deepcopy(lp_order_string)
-def dram_invariant_looporder(pe_array, input_lp_order_dram, input_lp_order_gb):
-    # input_lp_order:[range(0,4),                                                                           ]
-    #                 pe_array  ,1st pos   ,2nd pos   , 3rd pos  , .........................................
-    if not (len(input_lp_order_gb)==len(set(input_lp_order_gb)) and len(input_lp_order_dram)==len(set(input_lp_order_dram))):
-        raise Exception('Please provide lp_order with no duplicate elements')
-    input_rf=rf_noc_template[pe_array]
-    lp_order_template_dram=['col_out_dram', 'ch_out_dram', 'batch_dram','ch_in_dram','row_out_dram','col_kernel_dram','row_kernel_dram']
-    lp_order_template=['ch_out_gb','ch_in_gb','col_kernel_gb', 'row_out_gb','batch_gb','col_out_gb','row_kernel_gb']
-    lp_order_string=[]
-    for i in range(len(lp_order_template)):
-        lp_order_string.append(lp_order_template[input_lp_order_gb[i]])
-    for i in range(len(lp_order_template_dram)):
-        lp_order_string.append(lp_order_template_dram[input_lp_order_dram[i]])
-    return copy.deepcopy(input_rf)+copy.deepcopy(lp_order_string)
-
-def tiling_translation(tiling_scheme,tiling_pool,alloc_slots,pe_array,space_partition):
-    tiling_pool=copy.deepcopy(tiling_pool[alloc_slots[pe_array]:alloc_slots[pe_array+1]])
-    index=0
-    for i in range(len(tiling_scheme)):
-        tmp=tiling_scheme[i]
-        for j in range(i+1,len(tiling_scheme)):
-            tmp*=space_partition[pe_array][j]
-        index+=tmp
-    #print('abs index: ',index)
-    tiling_string=tiling_pool[index]
-    return tiling_string[0]
-
-
-
-def dsp_check(tiling_scheme_string,dsp_limit):
-    dsp_consumption=1    
-    for i in tiling_scheme_string:
-        if 'noc' in i:
-            dsp_consumption*=tiling_scheme_string[i]
-    return dsp_consumption<dsp_limit
 input_dnn=[\
 # [1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
 # [1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
@@ -137,7 +58,6 @@ score=[]
 for _ in range(500):
     #pick a pe array
     pe_array=randint(0,3)
-    pe_array=0
     #complete the rest of the lp_order: local buffer(rf), global buffer(gb), dram 
     #input_lp_order_rf=list(range(7))
     #shuffle(input_lp_order_rf)

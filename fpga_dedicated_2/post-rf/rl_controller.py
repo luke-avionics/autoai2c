@@ -10,7 +10,6 @@ import copy
 import random
 from datetime import datetime
 import time
-import torch
 import os
 from ev_util import *
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ def ema(values):
 
 class Controller(object):
 
-    def __init__(self,tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec,initial_input=[]):
+    def __init__(self,tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec, layer,initial_input=[]):
         self.graph = tf.Graph()
 
         config = tf.ConfigProto()
@@ -42,7 +41,8 @@ class Controller(object):
         self.tiling1=tiling1
         self.tmp_hw_spec=tmp_hw_spec
         self.hidden_units = self.controller_params['hidden_units']
-
+        self.layer=layer
+        self.input_dnn=copy.deepcopy(self.tiling1.input_dnn)
         #self.nn1_search_space = controller_params['sw_space']
         self.hw1_search_space =  self.controller_params['hw_space']
 
@@ -236,7 +236,7 @@ class Controller(object):
     def get_HW_efficienct(self,param):
         # Weiwen 01-24: Using the built Network and HW1 explored results to generate hardware efficiency
         # with the consideration of resource constraint RC
-        score=performance_feedback(self.tiling1,self.pe_array,self.pe_array_dim_choices,param,self.tmp_hw_spec)
+        score=performance_feedback(self.tiling1,self.pe_array,self.pe_array_dim_choices,param,self.tmp_hw_spec,self.layer,self.input_dnn[self.layer][2])
         print(score)
         if score[1]:
             return -score[0]

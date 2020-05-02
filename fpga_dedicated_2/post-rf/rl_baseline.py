@@ -12,7 +12,7 @@ from ev_dict_object import *
 #for saving np to matlab 
 import scipy.io as sio
 from rl_controller import *
-import torch
+
 import random
 import logging
 import sys
@@ -38,6 +38,10 @@ def dsp_check(tiling_scheme_string,dsp_limit):
         if 'noc' in i:
             dsp_consumption*=tiling_scheme_string[i]
     return dsp_consumption<dsp_limit
+
+
+max_dim_choices=5
+layer=2
 input_dnn=[\
 # [1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
 # [1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
@@ -53,6 +57,28 @@ input_dnn=[\
 # [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
 # [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
 ]
+
+
+
+
+input_dnn=[\
+[1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+]
+
+
+
 
 
 #fpga dedicated 706
@@ -77,41 +103,74 @@ controller_params = {
     'hidden_units': 35,
 }
 controller_params_pool=[]
+if input_dnn[layer][2]==0:
+    for pe_array in range(4):
+        for pe_array_dim_choices in range(max_dim_choices):
+            controller_params_pool.append(copy.deepcopy(controller_params))
+            tiling_space_1=tiling1.tiling_space_partition(pe_array,0,pe_array_dim_choices)
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
+            controller_params_pool[-1]["hw_space"].append(list(range(7)))
 
-for pe_array in range(4):
-    for pe_array_dim_choices in range(10):
-        controller_params_pool.append(copy.deepcopy(controller_params))
-        tiling_space_1=tiling1.tiling_space_partition(pe_array,0,pe_array_dim_choices)
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-        controller_params_pool[-1]["hw_space"].append(list(range(7)))
-    
-        controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[0])))
-        controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[1])))
-        controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[2])))
-        controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[3])))
-        controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[4])))
-        controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[5])))
-        controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[6])))
-        
-        controller_params_pool[-1]["hw_space"].append(list(range(2)))
-        controller_params_pool[-1]["hw_space"].append(list(range(2)))
-        controller_params_pool[-1]["hw_space"].append(list(range(2)))
-        controller_params_pool[-1]["hw_space"].append(list(range(2)))
-        controller_params_pool[-1]["hw_space"].append(list(range(2)))
-        controller_params_pool[-1]["hw_space"].append(list(range(2)))
-        controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[0])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[1])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[2])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[3])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[4])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[5])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[6])))
+
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+elif input_dnn[layer][2]==1:
+    for pe_array in range(4):
+        for pe_array_dim_choices in range(max_dim_choices):
+            controller_params_pool.append(copy.deepcopy(controller_params))
+            tiling_space_1=tiling1.tiling_space_partition(pe_array,0,pe_array_dim_choices)
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+            controller_params_pool[-1]["hw_space"].append(list(range(6)))
+
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[0])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[1])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[2])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[3])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[4])))
+            controller_params_pool[-1]["hw_space"].append(list(range(tiling_space_1[5])))
+
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+            controller_params_pool[-1]["hw_space"].append(list(range(2)))
+
         
 sample_num=0        
 # print(len(controller_params_pool))
@@ -211,7 +270,7 @@ for _ in range(10):
     best_ts=None
     #permute choices
     pe_array_pool=list(range(4))
-    pe_array_dim_choices_pool=list(range(10))
+    pe_array_dim_choices_pool=list(range(max_dim_choices))
     random.shuffle(pe_array_pool)
     random.shuffle(pe_array_dim_choices_pool)
     for pe_array in pe_array_pool:
@@ -221,7 +280,7 @@ for _ in range(10):
             print(sample_num)
             print(best)      
             print(best_design) 
-            controller_params=controller_params_pool[pe_array*10+pe_array_dim_choices]
+            controller_params=controller_params_pool[pe_array*max_dim_choices+pe_array_dim_choices]
             #seed = 0
             #torch.manual_seed(seed)
             #random.seed(seed)
@@ -230,10 +289,10 @@ for _ in range(10):
                                 format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 
             print("Begin")
-            controller = Controller(tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec,initial_input=design_history[pe_array*10+pe_array_dim_choices])
+            controller = Controller(tiling1,controller_params,pe_array,pe_array_dim_choices,tmp_hw_spec,layer,initial_input=design_history[pe_array*max_dim_choices+pe_array_dim_choices])
             controller.global_train()
             sample_num+=controller.sample_num
-            design_history[pe_array*10+pe_array_dim_choices]=controller.current_best_design
+            design_history[pe_array*max_dim_choices+pe_array_dim_choices]=controller.current_best_design
             if controller.current_best<best:
                 best=controller.current_best
                 best_design=(pe_array, pe_array_dim_choices,controller.current_best_design)
