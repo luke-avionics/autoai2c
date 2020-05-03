@@ -60,7 +60,7 @@ def ref_location_optimization(df_order, df_config_dict,mode):
         df_order=["ref_rf_out"]+df_order
         df_order=["ref_rf_in"]+df_order
         df_order=["ref_rf_we"]+df_order
-    if mode==0:
+    if mode==0 or mode==2:
         #gb out
         ref_rf_out_idx=df_order.index('ref_gb_out')
         first_gb_out_idx=ref_rf_out_idx
@@ -530,7 +530,7 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,mode,input_df_order=N
 
     bw_gb_to_noc_dict = {'in':64, 'out':64, 'we':64}
     bw_rf_to_alu_dict = {'in':16, 'out':16, 'we':16}
-    if mode==0:
+    if mode==0 or mode==2:
         Energy_breakdown , opr_conv, opr_rf, opr_gb, num_active_pes = hw_config1.conv_df(stride, df_order, df_config_dict, bits_activation, bits_weight, bw_gb_to_noc_dict, bw_rf_to_alu_dict)
     elif mode==1:
         Energy_breakdown, opr_conv, opr_rf, opr_gb, num_active_pes = hw_config1.dw_conv_df(stride, df_order,
