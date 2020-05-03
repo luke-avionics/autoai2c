@@ -681,19 +681,32 @@ def translate_raw_param(tiling1,pe_array,pe_array_dim_choices,param,tmp_hw_spec,
     tiling_string=tiling1.tiling_translation(layer,pe_array,pe_array_dim_choices,param[14:21],param[21:28])
     return lp_order_string,tiling_string, tmp_hw_spec
 
-def resource_allocator(input_dnn,gb,pe):
+
+
+def resource_allocator(input_dnn,tmp_hw_spec):
+    gb=tmp_hw_spec['gb_vol']
+    pe=tmp_hw_spec['num_pe']
     para=[]
     comp=[]
     gb_all=[]
     pe_all=[]
     for layer in input_dnn:
-        para.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                    layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                    layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
-                    layer[1]['row_out'][0])
-        comp.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                    layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                    layer[1]['row_out'][0])
+        if layer[2]==0:
+            para.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+            comp.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+        elif layer[2]==1:
+            para.append(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+            comp.append(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
     for i in para:
         gb_all.append(i/sum(para)*gb)
     for i in comp:

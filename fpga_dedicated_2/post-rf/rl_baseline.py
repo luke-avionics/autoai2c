@@ -107,7 +107,7 @@ if input_dnn[layer][2]==0:
     for pe_array in range(4):
         for pe_array_dim_choices in range(max_dim_choices):
             controller_params_pool.append(copy.deepcopy(controller_params))
-            tiling_space_1=tiling1.tiling_space_partition(pe_array,0,pe_array_dim_choices)
+            tiling_space_1=tiling1.tiling_space_partition(pe_array,layer,pe_array_dim_choices)
             controller_params_pool[-1]["hw_space"].append(list(range(7)))
             controller_params_pool[-1]["hw_space"].append(list(range(7)))
             controller_params_pool[-1]["hw_space"].append(list(range(7)))
@@ -142,7 +142,7 @@ elif input_dnn[layer][2]==1:
     for pe_array in range(4):
         for pe_array_dim_choices in range(max_dim_choices):
             controller_params_pool.append(copy.deepcopy(controller_params))
-            tiling_space_1=tiling1.tiling_space_partition(pe_array,0,pe_array_dim_choices)
+            tiling_space_1=tiling1.tiling_space_partition(pe_array,layer,pe_array_dim_choices)
             controller_params_pool[-1]["hw_space"].append(list(range(6)))
             controller_params_pool[-1]["hw_space"].append(list(range(6)))
             controller_params_pool[-1]["hw_space"].append(list(range(6)))

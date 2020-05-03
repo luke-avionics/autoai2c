@@ -508,10 +508,10 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,mode,input_df_order=N
 #    ebit_gb_to_noc=(we_gb_unit*we_consumption_gb+out_gb_unit*out_consumption_gb+in_gb_unit*in_consumption_gb)/total_gb_consumption
 
     # working frequency for dram, gb, noc, rf
-    freq_dram = 90e6
-    freq_gb = 250e6
-    freq_noc = 250e6
-    freq_rf = 250e6
+    freq_dram = 200e6
+    freq_gb = 200e6
+    freq_noc = 200e6
+    freq_rf = 200e6
     
     
     hw_config1 = init(dram_vol, dram_bw, gb_vol, gb_bw, noc_bw,

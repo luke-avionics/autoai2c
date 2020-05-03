@@ -13,33 +13,53 @@ from ev_dict_object import *
 import scipy.io as sio
 
 
+layer=2
+max_dim_choices=5
+# input_dnn=[\
+# # [1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[128,0],'ch_in':[64,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[128,0],'ch_in':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# [1,{'ch_out':[256,0],'ch_in':[128,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[512,0],'ch_in':[256,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# # [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+# ]
+
 
 input_dnn=[\
-# [1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[128,0],'ch_in':[64,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[128,0],'ch_in':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[256,0],'ch_in':[128,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[512,0],'ch_in':[256,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},1],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},0],\
 ]
 
 
 #fpga dedicated 706
 tmp_hw_spec={\
-    'gb_vol':2*1024*1024, \
+    'gb_vol':20*1024*1024, \
     'rf_vol':512, \
-    'num_pe':144, \
-    'num_rf':144
+    'num_pe':900, \
+    'num_rf':900
 }
 
 
+print(resource_allocator(input_dnn,tmp_hw_spec))
+exit()
 
 # tiling1=asic_tiling_generator(input_dnn,hw_spec)
 # print(tiling1.rs2_rf_gb_tiling_choices_num[5][5])
@@ -56,27 +76,33 @@ tmp_hw_spec={\
 tiling1=fpga_tiling_generator(input_dnn,tmp_hw_spec)
 score=[]
 for _ in range(500):
+    layer=randint(0,9)
     #pick a pe array
     pe_array=randint(0,3)
     #complete the rest of the lp_order: local buffer(rf), global buffer(gb), dram 
     #input_lp_order_rf=list(range(7))
     #shuffle(input_lp_order_rf)
-    input_lp_order_gb=list(range(7))
-    shuffle(input_lp_order_gb)
-    input_lp_order_dram=list(range(7))
-    shuffle(input_lp_order_dram)
+    if input_dnn[layer][2]==0:
+        input_lp_order_gb=list(range(7))
+        shuffle(input_lp_order_gb)
+        input_lp_order_dram=list(range(7))
+        shuffle(input_lp_order_dram)
+    elif input_dnn[layer][2]==1:
+        input_lp_order_gb=list(range(6))
+        shuffle(input_lp_order_gb)
+        input_lp_order_dram=list(range(6))
+        shuffle(input_lp_order_dram)
     #translate the lp_order to string format
-    lp_order_string=dram_invariant_looporder(pe_array,input_lp_order_dram, input_lp_order_gb)
+    lp_order_string=dram_invariant_looporder(pe_array,input_lp_order_dram, input_lp_order_gb,input_dnn[layer][2])
 
     #choose the applicable tiling space
     #!!!ATTENTION HERE!!!
     #
     #1. you need to specify the pe_array_dim_choices style, to favor different trade off sizes among each pe dimension;
     #           currently it is under 10, i.e. 0-9
-    layer=0
-    pe_array_dim_choices=randint(0,9)
+    pe_array_dim_choices=randint(0,max_dim_choices-1)
     tiling_space_1=tiling1.tiling_space_partition(pe_array,layer,pe_array_dim_choices) 
-    print(len(tiling_space_1))
+    #print(len(tiling_space_1))
     #now you have a space format to choose the tiling from
     #tiling_space_1 is a list of size 7 EXCEPT when pe_array==0, that time the size is 5
     #each element specify how many choices you could have to each tiling.. (for actual implication of these choices talk to me)
@@ -98,9 +124,11 @@ for _ in range(500):
     tiling_string=tiling1.tiling_translation(layer,pe_array,pe_array_dim_choices,tiling_choices,tiling_choices_order)
     #pass for EDP feedback
     #print(pe_array)
-    if life_eval(tiling_string,1,tmp_hw_spec,df_order=lp_order_string)[1]:
-        score.append(life_eval(tiling_string,1,tmp_hw_spec,df_order=lp_order_string)[0])
-    print(sorted(score,reverse=True)[0])
+    if life_eval(tiling_string,1,tmp_hw_spec,input_dnn[layer][2],df_order=lp_order_string)[1]:
+        score.append(life_eval(tiling_string,1,tmp_hw_spec,input_dnn[layer][2],df_order=lp_order_string)[0])
+        print("current score: ", score[-1], 'Best score: ', sorted(score, reverse=True)[0])
+    #print(score)
+
 
 
 
