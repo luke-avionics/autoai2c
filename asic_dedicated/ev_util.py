@@ -20,23 +20,27 @@ default_hw={ \
 #shared util funcs
 #############################
 
-def life_eval(actions,stride,hw_spec,df_order=None):
+
+def life_eval(actions,stride,hw_spec,mode,group_num=1,df_order=None):
     #function to query chip_estimator and get energy+latency feedback
 
     #actions: tiling factors for a specific loop-order
     #stride: the stride number for this CONV layer operation
     #hw_spec: hw specs for evaluation
-    #df_order: loop-order for evaluation 
+    #df_order: loop-order for evaluation
     #           !!!!if not provided PLS provide it in chip_estimator
     #           !!!!legacy functionality, so always try to provide specific loop-order here
     try:
+        if mode!=2 and group_num!=1:
+            print('You did not choose group convolution, please set group num to 1')
+            raise
         #input isolation
         input_actions=dict(actions)
         if df_order:
             input_df_order=list(df_order)
         else:
             input_df_order=None
-        ene_results=simnas.sample_energy(input_actions,stride,hw_spec,input_df_order=input_df_order)
+        ene_results=simnas.sample_energy(input_actions,stride,hw_spec,mode,input_df_order=input_df_order)
         penalty=(ene_results[0]*1e-8, ene_results[1]*100)
         buffer_not_exceed=True
         #print(ene_results[0],ene_results[1])
@@ -44,7 +48,6 @@ def life_eval(actions,stride,hw_spec,df_order=None):
     #if exceeded return extremely large penalty
     except Exception as e:
         if 'resource' in str(e):
-            print('error:', e)
             pass
         else:
             print('error:',e)
@@ -53,6 +56,8 @@ def life_eval(actions,stride,hw_spec,df_order=None):
         penalty=(9e12,9e12)                                  #very strong penalty to over budget
         buffer_not_exceed=False
     return penalty, buffer_not_exceed
+
+
 
 
 #noc_template to be considered 

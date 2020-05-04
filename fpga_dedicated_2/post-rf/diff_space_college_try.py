@@ -14,7 +14,7 @@ import scipy.io as sio
 
 
 layer=2
-max_dim_choices=5
+max_dim_choices=1
 # input_dnn=[\
 # # [1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
 # # [1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
@@ -58,7 +58,7 @@ tmp_hw_spec={\
 }
 
 
-print(resource_allocator(input_dnn,tmp_hw_spec))
+tmp_hw_spec_list=resource_allocator(input_dnn,tmp_hw_spec)
 
 # tiling1=asic_tiling_generator(input_dnn,hw_spec)
 # print(tiling1.rs2_rf_gb_tiling_choices_num[5][5])
@@ -74,7 +74,9 @@ print(resource_allocator(input_dnn,tmp_hw_spec))
 #the space is partitioned according to alloc_slots based on the rf_noc_template choice (PE array)
 tiling1=fpga_tiling_generator(input_dnn,tmp_hw_spec)
 score=[]
-for _ in range(500):
+max_trials=500
+out_of_limit_num=0
+for _ in range(max_trials):
     layer=randint(0,9)
     #pick a pe array
     pe_array=randint(0,3)
@@ -123,10 +125,20 @@ for _ in range(500):
     tiling_string=tiling1.tiling_translation(layer,pe_array,pe_array_dim_choices,tiling_choices,tiling_choices_order)
     #pass for EDP feedback
     #print(pe_array)
-    if life_eval(tiling_string,1,tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)[1]:
-        score.append(life_eval(tiling_string,1,tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)[0])
+    print('estimating....')
+    p_tmp_hw_spec={\
+        'gb_vol':tmp_hw_spec_list[0][layer], \
+        'rf_vol':512, \
+        'num_pe':tmp_hw_spec_list[1][layer], \
+        'num_rf':tmp_hw_spec_list[1][layer]\
+    }
+    if life_eval(tiling_string,1,p_tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)[1]:
+        score.append(life_eval(tiling_string,1,p_tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)[0])
         print("current score: ", score[-1], 'Best score: ', sorted(score, reverse=True)[0])
-    #print(score)
+    else:
+        print('out of limit')
+        out_of_limit_num +=1
+print(out_of_limit_num/max_trials)
 
 
 

@@ -219,27 +219,52 @@ def data_type_sizes(input_dnn):
             output_size+=layer[1]['ch_out'][0]*layer[1]['row_out'][0]*layer[1]['col_out'][0]*layer[3]
     return input_size, output_size, kernel_size
     
-
+def resource_allocator(input_dnn,tmp_hw_spec):
+    gb=tmp_hw_spec['gb_vol']
+    pe=tmp_hw_spec['num_pe']
+    para=[]
+    comp=[]
+    gb_all=[]
+    pe_all=[]
+    for layer in input_dnn:
+        if layer[2]==0:
+            para.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+            comp.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+        elif layer[2]==1:
+            para.append(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+            comp.append(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+        elif layer[2] == 2:
+            para.append((layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])*layer[3])
+            comp.append((layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0]/layer[3])*layer[3])
+    for i in para:
+        gb_all.append(math.ceil(i/sum(para)*gb))
+    for i in comp:
+        pe_all.append(math.ceil(i/sum(comp)*pe))
+    return gb_all,pe_all
     
 class fpga_tiling_generator():
     def __init__(self, input_dnn, hw_spec):
-        self.pe_array_dim_num=5
+        self.pe_array_dim_num=1
         input_dnn=copy.deepcopy(input_dnn)
         self.input_dnn=input_dnn
         hw_spec=copy.deepcopy(hw_spec)
-        [input_size,output_size, weight_size]=data_type_sizes(input_dnn)
-        #self.total_rf=hw_spec['rf_vol']
-        self.total_gb=hw_spec['gb_vol']
-        self.dsp_limit=hw_spec['num_pe']
-        #partition gb and rf proportionally towards each data type's size 
-        #in the future if we would like to do dynamic allocation we can use the following as arguments instead
-        #self.input_rf=input_size*self.total_rf//(input_size+output_size+weight_size)
-        #self.output_rf=output_size*self.total_rf//(input_size+output_size+weight_size)
-        #self.weight_rf=weight_size*self.total_rf//(input_size+output_size+weight_size)
-        self.input_gb=input_size*self.total_gb//(input_size+output_size+weight_size)
-        self.output_gb=output_size*self.total_gb//(input_size+output_size+weight_size)
-        self.weight_gb=weight_size*self.total_gb//(input_size+output_size+weight_size)
-        
+        [self.gb_all,self.dsp_limit]=resource_allocator(input_dnn,hw_spec)
+
         ch_in=[]
         ch_out=[]
         row_out=[]
@@ -287,15 +312,19 @@ class fpga_tiling_generator():
             if input_dnn[i][2]==0 or input_dnn[i][2]==2:
                 for m in ch_in_choices:
                     for l in ch_out_choices:
-                        if m*l*input_dnn[i][1]['col_kernel'][0]*input_dnn[i][1]['row_kernel'][0] <= self.dsp_limit:
-                            pe_designs.append(m*l*input_dnn[i][1]['col_kernel'][0]*input_dnn[i][1]['row_kernel'][0])
-                            str1.append((m,l,input_dnn[i][1]['col_kernel'][0],input_dnn[i][1]['row_kernel'][0]))
+                        for rk in row_kernel_choices:
+                            for ck in col_kernel_choices:
+                                if m*l*rk*ck <= self.dsp_limit[i]:
+                                    pe_designs.append(m*l*rk*ck)
+                                    str1.append((m,l,ck,rk))
                 pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
             elif input_dnn[i][2]==1:
                 for l in ch_out_choices:
-                    if l*input_dnn[i][1]['col_kernel'][0]*input_dnn[i][1]['row_kernel'][0] <= self.dsp_limit:
-                        pe_designs.append(l*input_dnn[i][1]['col_kernel'][0]*input_dnn[i][1]['row_kernel'][0])
-                        str1.append((l,input_dnn[i][1]['col_kernel'][0],input_dnn[i][1]['row_kernel'][0]))
+                    for rk in row_kernel_choices:
+                        for ck in col_kernel_choices:
+                            if l*rk*ck <= self.dsp_limit[i]:
+                                pe_designs.append(l*rk*ck)
+                                str1.append((l,ck,rk))
                 pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
             #print(pe_designs[1:10])
             
@@ -325,10 +354,10 @@ class fpga_tiling_generator():
                 self.ws_rf_gb_tiling_choices[-1][-1]['row_out_rf_gb_choices']=factor_n(input_dnn[i][1]['row_out'][0],2)
                 self.ws_rf_gb_tiling_choices_num[-1][-1].append(len(self.ws_rf_gb_tiling_choices[-1][-1]['row_out_rf_gb_choices']))
             
-                self.ws_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']=[[1,1]]
+                self.ws_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']=factor_n(input_dnn[i][1]['col_kernel'][0]//self.ws_noc[-1][-1]['col_kernel_noc'],2)
                 self.ws_rf_gb_tiling_choices_num[-1][-1].append(len(self.ws_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']))    
 
-                self.ws_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']=[[1,1]]
+                self.ws_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']=factor_n(input_dnn[i][1]['row_kernel'][0]//self.ws_noc[-1][-1]['row_kernel_noc'],2)
                 self.ws_rf_gb_tiling_choices_num[-1][-1].append(len(self.ws_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']))                 
 
                 self.ws_rf_gb_tiling_choices[-1][-1]['batch_rf_gb_choices']=factor_n(input_dnn[i][1]['batch'][0],2)
@@ -356,11 +385,11 @@ class fpga_tiling_generator():
             str1=[]
             for l in ch_out_choices:
                 for j in list(combinations(col_out_choices,2)):
-                        if l*j[0]*j[1] <= self.dsp_limit:
+                        if l*j[0]*j[1] <= self.dsp_limit[i]:
                             pe_designs.append(j[0]*j[1]*l)
                             str1.append((l,j[0],j[1]))
                 for k in col_out_choices:
-                        if l*k*k <= self.dsp_limit:
+                        if l*k*k <= self.dsp_limit[i]:
                             pe_designs.append(k*k*l)
                             str1.append((l,k,k))
             pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
@@ -422,16 +451,18 @@ class fpga_tiling_generator():
                 for m in ch_in_choices:
                     for l in ch_out_choices:
                         for j in col_out_choices:
-                            if m*l*j*input_dnn[i][1]['row_kernel'][0] <= self.dsp_limit:
-                                pe_designs.append(m*l*j*input_dnn[i][1]['row_kernel'][0])
-                                str1.append((m,l,j,input_dnn[i][1]['row_kernel'][0]))
+                            for rk in row_kernel_choices:
+                                if m*l*j*rk<= self.dsp_limit[i]:
+                                    pe_designs.append(m*l*j*rk)
+                                    str1.append((m,l,j,rk))
                 pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
             elif input_dnn[i][2]==1:
                 for l in ch_out_choices:
                     for j in col_out_choices:
-                        if l*j*input_dnn[i][1]['row_kernel'][0] <= self.dsp_limit:
-                            pe_designs.append(l*j*input_dnn[i][1]['row_kernel'][0])
-                            str1.append((l,j,input_dnn[i][1]['row_kernel'][0]))
+                        for rk in row_kernel_choices:
+                            if l*j*rk <= self.dsp_limit[i]:
+                                pe_designs.append(l*j*rk)
+                                str1.append((l,j,rk))
                 pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
             #print(pe_designs[1:10])
             
@@ -464,7 +495,7 @@ class fpga_tiling_generator():
                 self.rs1_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']=factor_n(input_dnn[i][1]['col_kernel'][0],2)
                 self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']))    
 
-                self.rs1_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']=[[1,1]]
+                self.rs1_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']=factor_n(input_dnn[i][1]['row_kernel'][0]//self.ws_noc[-1][-1]['row_kernel_noc'],2)
                 self.rs1_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs1_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']))                 
 
                 self.rs1_rf_gb_tiling_choices[-1][-1]['batch_rf_gb_choices']=factor_n(input_dnn[i][1]['batch'][0],2)
@@ -499,16 +530,18 @@ class fpga_tiling_generator():
                 for m in ch_in_choices:
                     for l in ch_out_choices:
                         for j in col_out_choices:
-                            if m*l*j*input_dnn[i][1]['col_kernel'][0] <= self.dsp_limit:
-                                pe_designs.append(m*l*j*input_dnn[i][1]['col_kernel'][0])
-                                str1.append((m,l,j,input_dnn[i][1]['col_kernel'][0]))
+                            for ck in col_kernel_choices:
+                                if m*l*j*ck<= self.dsp_limit[i]:
+                                    pe_designs.append(m*l*j*ck)
+                                    str1.append((m,l,j,ck))
                 pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
             elif input_dnn[i][2]==1:
                 for l in ch_out_choices:
                     for j in col_out_choices:
-                        if l*j*input_dnn[i][1]['col_kernel'][0] <= self.dsp_limit:
-                            pe_designs.append(l*j*input_dnn[i][1]['col_kernel'][0])
-                            str1.append((l,j,input_dnn[i][1]['col_kernel'][0]))
+                        for ck in col_kernel_choices:
+                            if l*j*ck<= self.dsp_limit[i]:
+                                pe_designs.append(l*j*ck)
+                                str1.append((l,j,ck))
                 pe_designs=[i[1] for i in sorted(zip(pe_designs,str1),reverse=True)]
             #print(pe_designs[1:10])
             
@@ -538,7 +571,7 @@ class fpga_tiling_generator():
                 self.rs2_rf_gb_tiling_choices[-1][-1]['row_out_rf_gb_choices']=factor_n(input_dnn[i][1]['row_out'][0],2)
                 self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['row_out_rf_gb_choices']))
             
-                self.rs2_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']=[[1,1]]
+                self.rs2_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']=factor_n(input_dnn[i][1]['col_kernel'][0]//self.ws_noc[-1][-1]['col_kernel_noc'],2)
                 self.rs2_rf_gb_tiling_choices_num[-1][-1].append(len(self.rs2_rf_gb_tiling_choices[-1][-1]['col_kernel_rf_gb_choices']))    
 
                 self.rs2_rf_gb_tiling_choices[-1][-1]['row_kernel_rf_gb_choices']=factor_n(input_dnn[i][1]['row_kernel'][0],2)
@@ -690,43 +723,7 @@ def translate_raw_param(tiling1,pe_array,pe_array_dim_choices,param,tmp_hw_spec,
 
 
 
-def resource_allocator(input_dnn,tmp_hw_spec):
-    gb=tmp_hw_spec['gb_vol']
-    pe=tmp_hw_spec['num_pe']
-    para=[]
-    comp=[]
-    gb_all=[]
-    pe_all=[]
-    for layer in input_dnn:
-        if layer[2]==0:
-            para.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0])
-            comp.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0])
-        elif layer[2]==1:
-            para.append(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0])
-            comp.append(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0])
-        elif layer[2] == 2:
-            para.append((layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0])*layer[3])
-            comp.append((layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0]/layer[3])*layer[3])
-    for i in para:
-        gb_all.append(i/sum(para)*gb)
-    for i in comp:
-        pe_all.append(i/sum(comp)*pe)
-    return gb_all,pe_all
+
 def hw_consumption(lp_order_string,tiling_string,hw_spec,stride):
     noc_consumption=1
     for i in tiling_string:

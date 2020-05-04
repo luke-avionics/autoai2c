@@ -85,69 +85,21 @@ tmp_hw_spec={\
 
 
 def tiling_generator(input_dnn,tmp_hw_spec,bw=16):
-    max_in_ch=1
-    max_out_ch=1
-    max_col_kernel=1
-    max_row_kernel=1
-    max_col_out=1
-    max_row_out=1
-    max_batch=1
-
+    choices = {'ch_in': [], 'ch_out': [], 'col_kernel': [], 'row_kernel': [], 'col_out': [], 'row_out': [], 'batch': []}
     for layer in input_dnn:
-        if layer[1]['ch_in'][0]>max_in_ch:
-            max_in_ch=layer[1]['ch_in'][0]
-        if layer[1]['ch_out'][0]>max_out_ch:
-            max_out_ch=layer[1]['ch_out'][0]
-        if layer[1]['col_kernel'][0]>max_col_kernel:
-            max_col_kernel=layer[1]['col_kernel'][0]
-        if layer[1]['row_kernel'][0]>max_row_kernel:
-            max_row_kernel=layer[1]['row_kernel'][0]
-        if layer[1]['col_out'][0]>max_col_out:
-            max_col_out=layer[1]['col_out'][0]
-        if layer[1]['row_out'][0]>max_row_out:
-            max_row_out=layer[1]['row_out'][0]
-        if layer[1]['batch'][0]>max_batch:
-            max_batch=layer[1]['batch'][0]
-    choices={'ch_in':[],'ch_out':[],'col_kernel':[],'row_kernel':[],'col_out':[],'row_out':[],'batch':[]}
-    #can be changed to better represent in the future
-    choices['ch_in']=r_factors(max_in_ch)
-    choices['ch_out']=r_factors(max_out_ch)
-    choices['col_kernel'] = r_factors(max_col_kernel)
-    choices['row_kernel'] = r_factors(max_row_kernel)
-    choices['col_out'] = r_factors(max_col_out)
-    choices['row_out'] = r_factors(max_row_out)
-    choices['batch'] = r_factors(max_batch)
-    choices_len=[len(choices[i]) for i in choices]
-    pe_array_pool=[]
-    #1 pe array
-    pe_array_pool.append({})
-    pe_array_pool[-1]["col_kernel"]=choices['col_kernel']
-    pe_array_pool[-1]['row_kernel']=choices['row_kernel']
-    pe_array_pool[-1]['ch_in']=choices['ch_in']
-    pe_array_pool[-1]['ch_out']=choices['ch_out']
-    #2 pe array
-    pe_array_pool.append({})
-    pe_array_pool[-1]["col_kernel"]=choices['col_kernel']
-    pe_array_pool[-1]['col_out']=choices['col_out']
-    pe_array_pool[-1]['ch_in']=choices['ch_in']
-    pe_array_pool[-1]['ch_out']=choices['ch_out']
-    #3 pe array
-    pe_array_pool.append({})
-    pe_array_pool[-1]["row_kernel"]=choices['row_kernel']
-    pe_array_pool[-1]['col_out']=choices['col_out']
-    pe_array_pool[-1]['ch_in']=choices['ch_in']
-    pe_array_pool[-1]['ch_out']=choices['ch_out']
-    #4 pe_array
-    pe_array_pool.append({})
-    pe_array_pool[-1]["row_out"]=choices['row_out']
-    pe_array_pool[-1]['col_out']=choices['col_out']
-    pe_array_pool[-1]['ch_out']=choices['ch_out']
-    #pe_array_dim_choices=[[len(i[j]) for j in i] for i in pe_array_pool]
+        choices['ch_in']+=r_factors(layer[1]['ch_in'][0])
+        choices['ch_out'] += r_factors(layer[1]['ch_out'][0])
+        choices['col_kernel'] += r_factors(layer[1]['col_kernel'][0])
+        choices['row_kernel'] += r_factors(layer[1]['row_kernel'][0])
+        choices['col_out'] += r_factors(layer[1]['col_out'][0])
+        choices['row_out'] += r_factors(layer[1]['row_out'][0])
+        choices['batch'] += r_factors(layer[1]['batch'][0])
+    for i in choices:
+        choices[i]=set(choices[i])
     choices_len_rf=[]
     choices_len_gb=[]
     largest_rf=tmp_hw_spec["rf_vol"]/bw
     largest_gb=tmp_hw_spec["gb_vol"]/bw/100
-    largest_noc = tmp_hw_spec["num_pe"]
     for i in choices:
         rf_bound=0
         gb_bound=0
@@ -158,18 +110,12 @@ def tiling_generator(input_dnn,tmp_hw_spec,bw=16):
                 gb_bound+=1
         choices_len_rf.append(rf_bound)
         choices_len_gb.append(gb_bound)
-    pe_array_dim_choices=[]
-    for i in range(len(pe_array_pool)):
-        pe_array_dim_choices.append([])
-        pe_array_dim=pe_array_pool[i]
-        for j in pe_array_dim:
-            pe_bound=0
-            for syze in pe_array_dim[j]:
-                if largest_noc> syze:
-                    pe_bound+=1
-            pe_array_dim_choices[-1].append(pe_bound)
 
-    return choices, choices_len_rf, choices_len_gb, pe_array_pool, pe_array_dim_choices
+
+    return choices, choices_len_rf, choices_len_gb
+print(tiling_generator(input_dnn,tmp_hw_spec))
+exit()
+
 
 
 
@@ -290,7 +236,21 @@ def get_score_whole_dnn(tiling_string,consumption,tmp_hw_spec,lp_order_string,in
 
     # print(life_eval(tiling_string,input_dnn[0][0],tmp_hw_spec,df_order=lp_order_string))
 
+def resource_allocator_depth_std(input_dnn,tmp_hw_spec):
+    tmp_hw_spec1 = { \
+        'gb_vol': 10 * 1024 * 8, \
+        'rf_vol': 512 * 8, \
+        'num_pe': 129, \
+        'num_rf': 129
+    }
+    tmp_hw_spec2 = { \
+        'gb_vol': 10 * 1024 * 8, \
+        'rf_vol': 512 * 8, \
+        'num_pe': 129, \
+        'num_rf': 129
+    }
 
+    return tmp_hw_spec1, tmp_hw_spec2
 
 # [tiling_choices_dict,tiling_space_rf,tiling_space_gb,pe_array_dim_choices_dict,pe_array_dim_space_all]=tiling_generator(input_dnn,tmp_hw_spec)
 #
@@ -307,20 +267,29 @@ def get_score_whole_dnn(tiling_string,consumption,tmp_hw_spec,lp_order_string,in
 
 #generate the design space of all possible tiling factors
 #the space is partitioned according to alloc_slots based on the rf_noc_template choice (PE array)
-[tiling_choices_dict,tiling_space_rf,tiling_space_gb,pe_array_dim_choices_dict,pe_array_dim_space_all]=tiling_generator(input_dnn,tmp_hw_spec)
-pe_array_pool=pe_array_dimention_optimizer(input_dnn,tmp_hw_spec)
 
+[tmp_hw_spec,tmp_hw_spec2]=resource_allocator_depth_std(input_dnn,tmp_hw_spec)
+[tiling_choices_dict,tiling_space_rf,tiling_space_gb,pe_array_dim_choices_dict,pe_array_dim_space_all]=tiling_generator(input_dnn,tmp_hw_spec)
+[tiling_choices_dict_dw,tiling_space_rf_dw,tiling_space_gb_dw,pe_array_dim_choices_dict_dw,pe_array_dim_space_all_dw]=tiling_generator_dw(input_dnn,tmp_hw_spec2)
+pe_array_pool=pe_array_dimention_optimizer(input_dnn,tmp_hw_spec)
+pe_arra_pool_dw=pe_array_dimention_optimizer_dw(input_dnn,tmp_hw_spec2)
 #exit()
 for _ in range(100):
     #pick a pe array
     pe_array=randint(0,3)
-    #complete the rest of the lp_order: local buffer(rf), global buffer(gb), dram 
+    #complete the rest of the lp_order: local buffer(rf), global buffer(gb), dram
+
+    # one set for standard conv/group conv
     input_lp_order_rf=list(range(7))
     shuffle(input_lp_order_rf)
     input_lp_order_gb=list(range(7))
     shuffle(input_lp_order_gb)
     input_lp_order_dram=list(range(7))
     shuffle(input_lp_order_dram)
+
+    # another set for depthwise conv
+
+
     #translate the lp_order to string format
     lp_order_string=dram_invariant_looporder(pe_array,input_lp_order_dram, input_lp_order_gb,input_lp_order_rf)
 
@@ -331,6 +300,7 @@ for _ in range(100):
     # for i in pe_array_dim_space_1:
     #     pe_array_dim_choices.append(randint(0,i-1))
 
+    #one set for standard conv/group conv
     pe_array_dim_choices=randint(0,9)
     #register file
     tiling_choices=[]
@@ -341,6 +311,20 @@ for _ in range(100):
     for i in tiling_space_gb:
         tiling_choices1.append(randint(0,i-1))
     print(tiling_choices1)
+
+    #another set for depthwise conv
+
+    pe_array_dim_choices_dw=randint(0,9)
+    #register file
+    tiling_choices_dw=[]
+    for i in tiling_space_rf_dw:
+        tiling_choices_dw.append(randint(0,i-1))
+    #global buffer
+    tiling_choices1_dw=[]
+    for i in tiling_space_gb_dw:
+        tiling_choices1_dw.append(randint(0,i-1))
+
+
     #next translate the tiling scheme to dict/string format for energy mode
     #Guess what... NO DSP LIMIT now !!! already enforced
     #but.....there is something else .....

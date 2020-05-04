@@ -60,7 +60,7 @@ def ref_location_optimization(df_order, df_config_dict,mode):
         df_order=["ref_rf_out"]+df_order
         df_order=["ref_rf_in"]+df_order
         df_order=["ref_rf_we"]+df_order
-    if mode==0:
+    if mode==0 or mode==2:
         #gb out
         ref_rf_out_idx=df_order.index('ref_gb_out')
         first_gb_out_idx=ref_rf_out_idx
@@ -209,11 +209,11 @@ def ref_location_optimization(df_order, df_config_dict,mode):
         df_order.insert(first_gb_out_idx,'ref_rf_in')
         del df_order[ref_rf_out_idx]
     return df_order
-df_order=['row_out_noc', 'col_out_noc', 'ch_out_noc', 'batch_gb',  'col_out_gb', 'ch_out_gb', 'row_out_gb', 'row_kernel_gb', 'col_kernel_gb', 'col_kernel_dram', 'ch_out_dram',  'row_kernel_dram', 'col_out_dram', 'batch_dram', 'row_out_dram']
-df_dict={'ch_out_noc': 16, 'col_out_noc': 1, 'row_out_noc': 8, 'ch_in_gb': 128, 'ch_out_gb': 1, 'col_kernel_gb': 1, 'row_kernel_gb': 3, 'col_out_gb': 1, 'row_out_gb': 1, 'batch_gb': 1, 'ch_in_dram': 1, 'ch_out_dram': 16, 'col_out_dram': 56, 'row_out_dram': 7, 'col_kernel_dram': 3, 'row_kernel_dram': 1, 'batch_dram': 1}
-print(df_order)
-print(ref_location_optimization(df_order,df_dict,1))
-exit()
+# df_order=['row_out_noc', 'col_out_noc', 'ch_out_noc', 'batch_gb',  'col_out_gb', 'ch_out_gb', 'row_out_gb', 'row_kernel_gb', 'col_kernel_gb', 'col_kernel_dram', 'ch_out_dram',  'row_kernel_dram', 'col_out_dram', 'batch_dram', 'row_out_dram']
+# df_dict={'ch_out_noc': 16, 'col_out_noc': 1, 'row_out_noc': 8, 'ch_in_gb': 128, 'ch_out_gb': 1, 'col_kernel_gb': 1, 'row_kernel_gb': 3, 'col_out_gb': 1, 'row_out_gb': 1, 'batch_gb': 1, 'ch_in_dram': 1, 'ch_out_dram': 16, 'col_out_dram': 56, 'row_out_dram': 7, 'col_kernel_dram': 3, 'row_kernel_dram': 1, 'batch_dram': 1}
+# print(df_order)
+# print(ref_location_optimization(df_order,df_dict,1))
+# exit()
 def memory_consumption(df_order, df_config_dict,stride):
     df_order,df_config_dict=copy.deepcopy(df_order),copy.deepcopy(df_config_dict)
     #we consumption
@@ -508,10 +508,10 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,mode,input_df_order=N
 #    ebit_gb_to_noc=(we_gb_unit*we_consumption_gb+out_gb_unit*out_consumption_gb+in_gb_unit*in_consumption_gb)/total_gb_consumption
 
     # working frequency for dram, gb, noc, rf
-    freq_dram = 90e6
-    freq_gb = 250e6
-    freq_noc = 250e6
-    freq_rf = 250e6
+    freq_dram = 200e6
+    freq_gb = 200e6
+    freq_noc = 200e6
+    freq_rf = 200e6
     
     
     hw_config1 = init(dram_vol, dram_bw, gb_vol, gb_bw, noc_bw,
@@ -530,7 +530,7 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,mode,input_df_order=N
 
     bw_gb_to_noc_dict = {'in':64, 'out':64, 'we':64}
     bw_rf_to_alu_dict = {'in':16, 'out':16, 'we':16}
-    if mode==0:
+    if mode==0 or mode==2:
         Energy_breakdown , opr_conv, opr_rf, opr_gb, num_active_pes = hw_config1.conv_df(stride, df_order, df_config_dict, bits_activation, bits_weight, bw_gb_to_noc_dict, bw_rf_to_alu_dict)
     elif mode==1:
         Energy_breakdown, opr_conv, opr_rf, opr_gb, num_active_pes = hw_config1.dw_conv_df(stride, df_order,
@@ -573,9 +573,22 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,mode,input_df_order=N
                                            'E_noc_to_rf':E_noc_to_rf/opr_conv.energy,\
                                            'E_rf_to_alu':E_rf_to_alu/opr_conv.energy}
 
-
-
-
+# tmp_hw_spec={\
+#     'gb_vol':2*1024*1024, \
+#     'rf_vol':512, \
+#     'num_pe':144, \
+#     'num_rf':144
+# }
+#
+# df_order=['row_out_noc', 'col_out_noc', 'ch_out_noc', 'batch_gb',  'col_out_gb', 'ch_out_gb', 'row_out_gb', 'row_kernel_gb', 'col_kernel_gb', 'col_kernel_dram', 'ch_out_dram',  'row_kernel_dram', 'col_out_dram', 'batch_dram', 'row_out_dram']
+# df_dict={'ch_out_noc': 16, 'col_out_noc': 1, 'row_out_noc': 8, 'ch_in_gb': 128, 'ch_out_gb': 1, 'col_kernel_gb': 1, 'row_kernel_gb': 3, 'col_out_gb': 1, 'row_out_gb': 1, 'batch_gb': 1, 'ch_in_dram': 1, 'ch_out_dram': 16, 'col_out_dram': 56, 'row_out_dram': 7, 'col_kernel_dram': 3, 'row_kernel_dram': 1, 'batch_dram': 1}
+# print(sample_energy(df_dict,1,tmp_hw_spec,1,input_df_order=df_order))
+#
+#
+#
+# df_order=['row_out_noc', 'col_out_noc', 'ch_out_noc', 'batch_gb',  'col_out_gb', 'ch_out_gb', 'row_out_gb', 'row_kernel_gb', 'col_kernel_gb', 'ch_in_gb','col_kernel_dram', 'ch_out_dram',  'ch_in_dram','row_kernel_dram', 'col_out_dram', 'batch_dram', 'row_out_dram']
+# df_dict={'ch_out_noc': 16, 'col_out_noc': 1, 'row_out_noc': 8, 'ch_in_gb': 128, 'ch_out_gb': 1, 'col_kernel_gb': 1, 'row_kernel_gb': 3, 'col_out_gb': 1, 'row_out_gb': 1, 'batch_gb': 1, 'ch_in_dram': 1, 'ch_out_dram': 16, 'col_out_dram': 56, 'row_out_dram': 7, 'col_kernel_dram': 3, 'row_kernel_dram': 1, 'batch_dram': 1}
+# print(sample_energy(df_dict,1,tmp_hw_spec,0,input_df_order=df_order))
 
 
 
