@@ -103,7 +103,7 @@ def ref_location_optimization(df_order, df_config_dict,mode):
         ref_rf_out_idx=df_order.index('ref_rf_out')
         first_gb_out_idx=ref_rf_out_idx
         for i in range(len(df_order)):
-            if(('out_gb' in df_order[i] or 'batch_gb' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+            if(('out_gb' in df_order[i] or 'batch_gb' in df_order[i] or'out_dram' in df_order[i] or 'batch_dram' in df_order[i]  ) and df_config_dict[df_order[i]]!=1):
                 first_gb_out_idx=i
                 break
             elif 'gb' in df_order[i]:
@@ -115,7 +115,8 @@ def ref_location_optimization(df_order, df_config_dict,mode):
         ref_rf_out_idx=df_order.index('ref_rf_we')
         first_gb_out_idx=ref_rf_out_idx
         for i in range(len(df_order)):
-            if(('kernel_gb' in df_order[i] or 'ch_out_gb' in df_order[i] or 'ch_in_gb' in df_order[i] or 'batch_gb' in df_order[i] ) and df_config_dict[df_order[i]]!=1):
+            if(('kernel_gb' in df_order[i] or 'ch_out_gb' in df_order[i] or 'ch_in_gb' in df_order[i] or 'batch_gb' in df_order[i] or \
+                'kernel_dram' in df_order[i] or 'ch_out_dram' in df_order[i] or 'ch_in_dram' in df_order[i] or 'batch_dram' in df_order[i]  ) and df_config_dict[df_order[i]]!=1):
                 first_gb_out_idx=i
                 break
             elif 'gb' in df_order[i]:
@@ -127,7 +128,8 @@ def ref_location_optimization(df_order, df_config_dict,mode):
         ref_rf_out_idx=df_order.index('ref_rf_in')
         first_gb_out_idx=ref_rf_out_idx
         for i in range(len(df_order)):
-            if(('kernel_gb' in df_order[i] or 'col_out_gb' in df_order[i] or 'row_out_gb' in df_order[i] or 'ch_in_gb' in df_order[i] or 'batch_gb' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+            if(('kernel_gb' in df_order[i] or 'col_out_gb' in df_order[i] or 'row_out_gb' in df_order[i] or 'ch_in_gb' in df_order[i] or 'batch_gb' in df_order[i] or\
+                'kernel_dram' in df_order[i] or 'col_out_dram' in df_order[i] or 'row_out_dram' in df_order[i] or 'ch_in_dram' in df_order[i] or 'batch_dram' in df_order[i]) and df_config_dict[df_order[i]]!=1):
                 first_gb_out_idx=i
                 break
             elif 'gb' in df_order[i]:
@@ -428,7 +430,12 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,mode,input_df_order=N
     df_config_dict['ref_rf_in']=16
     df_config_dict['ref_rf_we']=64
     df_config_dict['ref_gb_in']=df_config_dict['ref_gb_out']=df_config_dict['ref_gb_we']=64
-    
+
+    # print("="*10)
+    # print(df_config_dict)
+    # print(df_order)
+    # print("=" * 10)
+
     stride=input_stride
     # this part is filled in by the "smart" domain specific experts (Yang Zhao)
     dram_vol = float('inf') # the dram volume (bits)

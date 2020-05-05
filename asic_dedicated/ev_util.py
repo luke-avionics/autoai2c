@@ -48,6 +48,9 @@ def life_eval(actions,stride,hw_spec,mode,group_num=1,df_order=None):
     #if exceeded return extremely large penalty
     except Exception as e:
         if 'resource' in str(e):
+
+            print('error:', e)
+
             pass
         else:
             print('error:',e)
@@ -62,8 +65,8 @@ def life_eval(actions,stride,hw_spec,mode,group_num=1,df_order=None):
 
 #noc_template to be considered 
 noc_template=[['col_kernel_noc','row_kernel_noc','ch_in_noc','ch_out_noc'], \
-                      ['col_kernel_noc','ch_in_noc','col_out_noc','ch_out_noc'], \
-                      ['row_kernel_noc','ch_in_noc','col_out_noc','ch_out_noc'], \
+                      ['col_kernel_noc','col_out_noc','ch_in_noc','ch_out_noc'], \
+                      ['row_kernel_noc','col_out_noc','ch_in_noc','ch_out_noc'], \
                       ['row_out_noc','col_out_noc','ch_out_noc'], \
                       ]
 

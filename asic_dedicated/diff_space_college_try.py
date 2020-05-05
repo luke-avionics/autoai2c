@@ -10,7 +10,8 @@ import math
 from ev_util import *
 #for saving np to matlab 
 import scipy.io as sio
-
+from sympy.solvers import solve
+from sympy import Symbol
 
 
 
@@ -41,12 +42,7 @@ def dram_invariant_looporder(pe_array, input_lp_order_dram, input_lp_order_gb,in
 
 
 
-def dsp_check(tiling_scheme_string,dsp_limit):
-    dsp_consumption=1    
-    for i in tiling_scheme_string:
-        if 'noc' in i:
-            dsp_consumption*=tiling_scheme_string[i]
-    return dsp_consumption<dsp_limit
+
 input_dnn=[\
 [1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
 [1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
@@ -66,7 +62,7 @@ input_dnn=[\
 
 #fpga dedicated 706
 tmp_hw_spec={\
-    'gb_vol':10*1024*8, \
+    'gb_vol':108*1024*8, \
     'rf_vol':512*8, \
     'num_pe':129, \
     'num_rf':129
@@ -84,148 +80,251 @@ tmp_hw_spec={\
 ############################
 
 
-def tiling_generator(input_dnn,tmp_hw_spec,bw=16):
-    choices = {'ch_in': [], 'ch_out': [], 'col_kernel': [], 'row_kernel': [], 'col_out': [], 'row_out': [], 'batch': []}
-    for layer in input_dnn:
-        choices['ch_in']+=r_factors(layer[1]['ch_in'][0])
-        choices['ch_out'] += r_factors(layer[1]['ch_out'][0])
-        choices['col_kernel'] += r_factors(layer[1]['col_kernel'][0])
-        choices['row_kernel'] += r_factors(layer[1]['row_kernel'][0])
-        choices['col_out'] += r_factors(layer[1]['col_out'][0])
-        choices['row_out'] += r_factors(layer[1]['row_out'][0])
-        choices['batch'] += r_factors(layer[1]['batch'][0])
-    for i in choices:
-        choices[i]=set(choices[i])
-    choices_len_rf=[]
-    choices_len_gb=[]
-    largest_rf=tmp_hw_spec["rf_vol"]/bw
-    largest_gb=tmp_hw_spec["gb_vol"]/bw/100
-    for i in choices:
-        rf_bound=0
-        gb_bound=0
-        for syze in choices[i]:
-            if largest_rf> syze:
-                rf_bound+=1
-            if largest_gb> syze:
-                gb_bound+=1
-        choices_len_rf.append(rf_bound)
-        choices_len_gb.append(gb_bound)
+# def tiling_generator(input_dnn,tmp_hw_spec,bw=16):
+#     choices = {'ch_in': [], 'ch_out': [], 'col_kernel': [], 'row_kernel': [], 'col_out': [], 'row_out': [], 'batch': []}
+#     for layer in input_dnn:
+#         choices['ch_in']+=r_factors(layer[1]['ch_in'][0])
+#         choices['ch_out'] += r_factors(layer[1]['ch_out'][0])
+#         choices['col_kernel'] += r_factors(layer[1]['col_kernel'][0])
+#         choices['row_kernel'] += r_factors(layer[1]['row_kernel'][0])
+#         choices['col_out'] += r_factors(layer[1]['col_out'][0])
+#         choices['row_out'] += r_factors(layer[1]['row_out'][0])
+#         choices['batch'] += r_factors(layer[1]['batch'][0])
+#     for i in choices:
+#         choices[i]=set(choices[i])
+#     choices_len_rf=[]
+#     choices_len_gb=[]
+#     largest_rf=tmp_hw_spec["rf_vol"]/bw
+#     largest_gb=tmp_hw_spec["gb_vol"]/bw/100
+#     for i in choices:
+#         rf_bound=0
+#         gb_bound=0
+#         for syze in choices[i]:
+#             if largest_rf> syze:
+#                 rf_bound+=1
+#             if largest_gb> syze:
+#                 gb_bound+=1
+#         choices_len_rf.append(rf_bound)
+#         choices_len_gb.append(gb_bound)
+#
+#
+#     return choices, choices_len_rf, choices_len_gb
+# [choices, choices_len_rf, choices_len_gb]=tiling_generator(input_dnn,tmp_hw_spec)
+#
+#
+#
+#
+#
+#
+# def pe_array_dimention_optimizer(input_dnn,tmp_hw_spec, range_c=0.9, consideration_range=10):
+#     #the number of tiles needed as penalty
+#     num_pe=tmp_hw_spec['num_pe']
+#     dim_3=[]
+#     dim_4=[]
+#     for i in range(int(range_c*num_pe),num_pe):
+#         dim_3+=factor_n(i,3)
+#         dim_4+=factor_n(i,4)
+#     dim_4=permute_factor(dim_4)
+#     dim_3=permute_factor(dim_3)
+#     pe_array_pool={}
+#     pe_array_pool[0]=[]
+#     pe_array_pool[1]=[]
+#     pe_array_pool[2]=[]
+#     pe_array_pool[3] = []
+#
+#     score_board=[]
+#     #pe array 1
+#     for i in dim_4:
+#         score=0
+#         for layer in input_dnn:
+#             score+=(math.ceil(layer[1]['col_kernel'][0]/i[0])+ math.ceil(layer[1]['row_kernel'][0]/i[1])\
+#                     +math.ceil(layer[1]['ch_in'][0]/i[2]) + math.ceil(layer[1]['ch_out'][0]/i[3]))
+#         score_board.append(score)
+#     pe_array_pool[0]+=[i[1] for i in sorted(zip(score_board,dim_4))][0:consideration_range]
+#
+#
+#
+#     score_board=[]
+#     #pe array 2
+#     for i in dim_4:
+#         score=0
+#         for layer in input_dnn:
+#             score+=(math.ceil(layer[1]['col_kernel'][0]/i[0])+ math.ceil(layer[1]['col_out'][0]/i[1])\
+#                     +math.ceil(layer[1]['ch_in'][0]/i[2]) +    math.ceil(layer[1]['ch_out'][0]/i[3]))
+#         score_board.append(score)
+#     pe_array_pool[1]+=[i[1] for i in sorted(zip(score_board,dim_4))][0:consideration_range]
+#
+#
+#     score_board=[]
+#     #pe array 2
+#     for i in dim_4:
+#         score=0
+#         for layer in input_dnn:
+#             score+=(math.ceil(layer[1]['row_kernel'][0]/i[0])+ math.ceil(layer[1]['col_out'][0]/i[1])\
+#                     +math.ceil(layer[1]['ch_in'][0]/i[2]) +    math.ceil(layer[1]['ch_out'][0]/i[3]))
+#         score_board.append(score)
+#     pe_array_pool[2]+=[i[1] for i in sorted(zip(score_board,dim_4))][0:consideration_range]
+#
+#     score_board=[]
+#     #pe array 3
+#     for i in dim_3:
+#         score=0
+#         for layer in input_dnn:
+#             score+=(math.ceil(layer[1]['row_out'][0]/i[0])+ math.ceil(layer[1]['col_out'][0]/i[1])\
+#                     +math.ceil(layer[1]['ch_out'][0]/i[2]))
+#         score_board.append(score)
+#     pe_array_pool[3]+=[i[1] for i in sorted(zip(score_board,dim_3))][0:consideration_range]
+#
+#
+#
+#     return pe_array_pool
 
 
-    return choices, choices_len_rf, choices_len_gb
-print(tiling_generator(input_dnn,tmp_hw_spec))
-exit()
+def hardware_translation(ratio_rf,ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16):
+    #in_ch, out_ch, X, Y, X_K, Y_K
+    rf_vol=tmp_hw_spec['rf_vol']/bw
+    gb_vol=tmp_hw_spec['gb_vol']/bw
+    pe_num=tmp_hw_spec['num_pe']
+    a=(ratio_rf[0]*(ratio_rf[2]+ratio_rf[4]-1)*(ratio_rf[3]+ratio_rf[5]-1))+(ratio_rf[1] * ratio_rf[2] * ratio_rf[3])
+    #a=(ratio_rf[0]*(ratio_rf[2])*(ratio_rf[3]))+(ratio_rf[1] * ratio_rf[2] * ratio_rf[3])
+    b=(ratio_rf[0] * ratio_rf[1] * ratio_rf[4]*ratio_rf[5])
+    x=0
+    #solve poly
+    roots=np.roots([b,a,0,0,-rf_vol])
+    roots=roots[np.isreal(roots)]
+    for i in roots:
+        if float(i.real)>0:
+            x=(i.real)
+    #calculate rf
+    consumption_dict={}
+    consumption_dict["ch_in_rf"]=math.floor(max(ratio_rf[0]*x,1))
+    consumption_dict["ch_out_rf"] = math.floor(max(ratio_rf[1] * x,1))
+    consumption_dict["col_out_rf"] = math.floor(max(ratio_rf[2] * x,1))
+    consumption_dict["row_out_rf"] = math.floor(max(ratio_rf[3] * x,1))
+    consumption_dict["col_kernel_rf"] = math.floor(max(ratio_rf[4] * x,1))
+    consumption_dict["row_kernel_rf"] = math.floor(max(ratio_rf[5] * x,1))
+    #calculate pe
+    if pe_array==3:
+        y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
+        consumption_dict['row_out_noc']=max(math.floor(y*ratio_noc[0]),1)
+        consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
+        consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+    elif pe_array==0:
+        y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2]/ratio_noc[3])**(1/4)
+        consumption_dict['col_kernel_noc']=max(math.floor(y*ratio_noc[0]),1)
+        consumption_dict['row_kernel_noc'] = max(math.floor(y * ratio_noc[1] * y), 1)
+        consumption_dict['ch_in_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+        consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[3] ), 1)
+    elif pe_array == 1:
+        y = (pe_num / ratio_noc[0] / ratio_noc[1] / ratio_noc[2] / ratio_noc[3]) ** (1 / 4)
+        consumption_dict['col_kernel_noc'] = max(math.floor(y * ratio_noc[0] ), 1)
+        consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
+        consumption_dict['ch_in_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+        consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[3] ), 1)
+    elif pe_array == 2:
+        y = (pe_num / ratio_noc[0] / ratio_noc[1] / ratio_noc[2] / ratio_noc[3]) ** (1 / 4)
+        consumption_dict['row_kernel_noc'] = max(math.floor(y * ratio_noc[0] ), 1)
+        consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
+        consumption_dict['ch_in_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+        consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[3] ), 1)
+    #calculate gb
+
+    in_rf_consumption=consumption_dict["ch_in_rf"]*(consumption_dict["col_out_rf"]+consumption_dict['col_kernel_rf']-1)*(consumption_dict["row_out_rf"]+consumption_dict['row_kernel_rf']-1)
+    out_rf_consumption=consumption_dict["ch_out_rf"] * consumption_dict["col_out_rf"] * consumption_dict["row_out_rf"]
+    we_rf_consumption=consumption_dict["ch_in_rf"] * consumption_dict["ch_out_rf"] * consumption_dict["col_kernel_rf"]*consumption_dict["row_kernel_rf"]
+    print((in_rf_consumption +out_rf_consumption+we_rf_consumption)*16)
+    in_rf_consumption_for_all_pes=in_rf_consumption
+    out_rf_consumption_for_all_pes=out_rf_consumption
+    we_rf_consumption_for_all_pes=we_rf_consumption
+    for i in consumption_dict:
+        if 'noc' in i:
+            if 'ch_in' in i:
+                in_rf_consumption_for_all_pes*=consumption_dict[i]
+                we_rf_consumption_for_all_pes*=consumption_dict[i]
+            elif 'ch_out' in i:
+                out_rf_consumption_for_all_pes*=consumption_dict[i]
+                we_rf_consumption_for_all_pes*=consumption_dict[i]
+            elif ('col_out' in i) or ('row_out' in i):
+                in_rf_consumption_for_all_pes*=consumption_dict[i]
+                out_rf_consumption_for_all_pes*=consumption_dict[i]
+            elif ('row_kernel' in i) or ('col_kernel' in i):
+                we_rf_consumption_for_all_pes *= consumption_dict[i]
+            else:
+                pass
+    a=(ratio_gb[0]*ratio_gb[2]*ratio_gb[3])*in_rf_consumption_for_all_pes+(ratio_gb[1] * ratio_gb[2] * ratio_gb[3])*out_rf_consumption_for_all_pes
+    b=(ratio_gb[0] * ratio_gb[1] * ratio_gb[4]*ratio_gb[5])*we_rf_consumption_for_all_pes
+    roots=np.roots([b,a,0,0,-gb_vol])
+    roots=roots[np.isreal(roots)]
+    z=0
+    for i in roots:
+        if float(i.real)>0:
+            z=i.real
+    consumption_dict["ch_in_gb"]=math.floor(max(ratio_gb[0]*z,1))
+    consumption_dict["ch_out_gb"] = math.floor(max(ratio_gb[1] * z,1))
+    consumption_dict["col_out_gb"] = math.floor(max(ratio_gb[2] * z,1))
+    consumption_dict["row_out_gb"] = math.floor(max(ratio_gb[3] * z,1))
+    consumption_dict["col_kernel_gb"] =math.floor( max(ratio_gb[4] * z,1))
+    consumption_dict["row_kernel_gb"] =math.floor( max(ratio_gb[5] * z,1))
+    return consumption_dict
 
 
 
-
-def pe_array_dimention_optimizer(input_dnn,tmp_hw_spec, range_c=0.9, consideration_range=10):
-    #the number of tiles needed as penalty
-    num_pe=tmp_hw_spec['num_pe']
-    dim_3=[]
-    dim_4=[]
-    for i in range(int(range_c*num_pe),num_pe):
-        dim_3+=factor_n(i,3)
-        dim_4+=factor_n(i,4)
-    dim_4=permute_factor(dim_4)
-    dim_3=permute_factor(dim_3)
-    pe_array_pool={}
-    pe_array_pool[0]=[]
-    pe_array_pool[1]=[]
-    pe_array_pool[2]=[]
-    pe_array_pool[3] = []
-
-    score_board=[]
-    #pe array 1
-    for i in dim_4:
-        score=0
-        for layer in input_dnn:
-            score+=(math.ceil(layer[1]['col_kernel'][0]/i[0])+ math.ceil(layer[1]['row_kernel'][0]/i[1])\
-                    +math.ceil(layer[1]['ch_in'][0]/i[2]) + math.ceil(layer[1]['ch_out'][0]/i[3]))
-        score_board.append(score)
-    pe_array_pool[0]+=[i[1] for i in sorted(zip(score_board,dim_4))][0:consideration_range]
-
-
-
-    score_board=[]
-    #pe array 2
-    for i in dim_4:
-        score=0
-        for layer in input_dnn:
-            score+=(math.ceil(layer[1]['col_kernel'][0]/i[0])+ math.ceil(layer[1]['col_out'][0]/i[1])\
-                    +math.ceil(layer[1]['ch_in'][0]/i[2]) +    math.ceil(layer[1]['ch_out'][0]/i[3]))
-        score_board.append(score)
-    pe_array_pool[1]+=[i[1] for i in sorted(zip(score_board,dim_4))][0:consideration_range]
-
-
-    score_board=[]
-    #pe array 2
-    for i in dim_4:
-        score=0
-        for layer in input_dnn:
-            score+=(math.ceil(layer[1]['row_kernel'][0]/i[0])+ math.ceil(layer[1]['col_out'][0]/i[1])\
-                    +math.ceil(layer[1]['ch_in'][0]/i[2]) +    math.ceil(layer[1]['ch_out'][0]/i[3]))
-        score_board.append(score)
-    pe_array_pool[2]+=[i[1] for i in sorted(zip(score_board,dim_4))][0:consideration_range]
-
-    score_board=[]
-    #pe array 3
-    for i in dim_3:
-        score=0
-        for layer in input_dnn:
-            score+=(math.ceil(layer[1]['row_out'][0]/i[0])+ math.ceil(layer[1]['col_out'][0]/i[1])\
-                    +math.ceil(layer[1]['ch_out'][0]/i[2]))
-        score_board.append(score)
-    pe_array_pool[3]+=[i[1] for i in sorted(zip(score_board,dim_3))][0:consideration_range]
-
-
-
-    return pe_array_pool
-
-
-
-def tiling_translation( tiling_rf, tiling_gb,tiling_pe, pe_array,pe_array_pool, tiling_choices_dict, input_dnn):
+def tiling_translation( consumption_dict, input_dnn):
     tiling_str = []
     pe_array_dim_choices_dict={}
     pe_array_dim_choices_dict[0]= copy.deepcopy(noc_template[0])
     pe_array_dim_choices_dict[1]= copy.deepcopy(noc_template[1])
     pe_array_dim_choices_dict[2]= copy.deepcopy(noc_template[2])
     pe_array_dim_choices_dict[3]= copy.deepcopy(noc_template[3])
+
+
     for layer in input_dnn:
         tiling_str.append({})
-        tiling_dim=0
-        for i in tiling_choices_dict:
-            tiling_str[-1][i+"_rf"] =min(tiling_choices_dict[i][tiling_rf[tiling_dim]],layer[1][i][0])
-            if i+"_noc" in list(pe_array_dim_choices_dict[pe_array]):
-                pe_idx= list(pe_array_dim_choices_dict[pe_array]).index(i+"_noc")
-                tiling_str[-1][i + "_noc"]=min(pe_array_pool[pe_array][tiling_pe][pe_idx], math.ceil(layer[1][i][0]/tiling_str[-1][i+"_rf"]))
-                tiling_str[-1][i+"_gb"] =min(tiling_choices_dict[i][tiling_gb[tiling_dim]], math.ceil(layer[1][i][0]/tiling_str[-1][i+"_rf"]/tiling_str[-1][i+"_noc"]))
-                tiling_str[-1][i + "_dram"]= math.ceil(layer[1][i][0]/tiling_str[-1][i+"_rf"]/tiling_str[-1][i+"_noc"]/tiling_str[-1][i+"_gb"])
-            else:
-                tiling_str[-1][i + "_gb"] = min(tiling_choices_dict[i][tiling_gb[tiling_dim]],math.ceil(layer[1][i][0] / tiling_str[-1][i + "_rf"]))
-                tiling_str[-1][i + "_dram"] =1
-            tiling_dim+=1
+        for i in consumption_dict:
+            if "rf" in i:
+                tiling_str[-1][i]=min(consumption_dict[i],layer[1][str(i)[:-3]][0])
+        for i in consumption_dict:
+            if "noc" in i:
+                tiling_str[-1][i]=min(consumption_dict[i],math.ceil(layer[1][str(i)[:-4]][0]/tiling_str[-1][str(i)[:-4]+"_rf"]))
+        for i in consumption_dict:
+            if "gb" in i:
+                try:
+                    tiling_str[-1][i] = min(consumption_dict[i],
+                                        math.ceil(layer[1][str(i)[:-3]][0] / tiling_str[-1][str(i)[:-3] + "_noc"]/tiling_str[-1][str(i)[:-3] + "_rf"]))
+                except KeyError:
+                    tiling_str[-1][i] = min(consumption_dict[i],
+                                            math.ceil(layer[1][str(i)[:-3]][0] /
+                                                      tiling_str[-1][str(i)[:-3] + "_rf"]))
+                except:
+                    raise
+        tiling_str[-1]['batch_rf']=tiling_str[-1]['batch_gb']=1
+        consumption_dict['batch_rf']=consumption_dict['batch_gb']=1
+        dram_list=['col_out_dram', 'ch_out_dram', 'batch_dram','ch_in_dram','row_out_dram','col_kernel_dram','row_kernel_dram']
+        for i in dram_list:
+            consumption_dict[i]=1
+            try:
+                tiling_str[-1][i] =math.ceil(layer[1][str(i)[:-5]][0] / tiling_str[-1][str(i)[:-5] + "_gb"]/ tiling_str[-1][str(i)[:-5] + "_noc"] / tiling_str[-1][
+                                            str(i)[:-5] + "_rf"])
+            except KeyError:
+                tiling_str[-1][i] =math.ceil(layer[1][str(i)[:-5]][0] / tiling_str[-1][str(i)[:-5] + "_gb"]/ tiling_str[-1][
+                                            str(i)[:-5] + "_rf"])
+            except:
+                raise
+    return tiling_str,consumption_dict
 
-    tiling_dim = 0
-    consumption={}
-    for i in tiling_choices_dict:
-        consumption[i + "_rf"] = tiling_choices_dict[i][tiling_rf[tiling_dim]]
-        if i+"_noc" in list(pe_array_dim_choices_dict[pe_array]):
-            pe_idx= list(pe_array_dim_choices_dict[pe_array]).index(i+"_noc")
-            consumption[i + "_noc"] = pe_array_pool[pe_array][tiling_pe][pe_idx]
-        consumption[i + "_gb"] = tiling_choices_dict[i][tiling_gb[tiling_dim]]
-        consumption[i + "_dram"] = 1
-        tiling_dim += 1
-    return tiling_str,consumption
+
+
+
 
 def get_score_whole_dnn(tiling_string,consumption,tmp_hw_spec,lp_order_string,input_dnn):
     #check for resource consumption
-    [penalty, buffer_not_exceed]=life_eval(consumption, 1, tmp_hw_spec, df_order=lp_order_string)
+    [penalty, buffer_not_exceed]=life_eval(consumption, 1, tmp_hw_spec, 0,group_num=1,df_order=lp_order_string)
     if not buffer_not_exceed:
+        print('consumption is out of limit')
         return [penalty[0], buffer_not_exceed]
     edp_raw=[0,0]
     for layer in range(len(input_dnn)):
-        [penalty, buffer_not_exceed] = life_eval(tiling_string[layer], input_dnn[layer][0], tmp_hw_spec, df_order=lp_order_string)
+        [penalty, buffer_not_exceed] = life_eval(tiling_string[layer], input_dnn[layer][0], tmp_hw_spec,0,group_num=1,df_order=lp_order_string)
         if not buffer_not_exceed:
             print('a oh...')
             return [penalty[0], buffer_not_exceed]
@@ -267,14 +366,9 @@ def resource_allocator_depth_std(input_dnn,tmp_hw_spec):
 
 #generate the design space of all possible tiling factors
 #the space is partitioned according to alloc_slots based on the rf_noc_template choice (PE array)
-
-[tmp_hw_spec,tmp_hw_spec2]=resource_allocator_depth_std(input_dnn,tmp_hw_spec)
-[tiling_choices_dict,tiling_space_rf,tiling_space_gb,pe_array_dim_choices_dict,pe_array_dim_space_all]=tiling_generator(input_dnn,tmp_hw_spec)
-[tiling_choices_dict_dw,tiling_space_rf_dw,tiling_space_gb_dw,pe_array_dim_choices_dict_dw,pe_array_dim_space_all_dw]=tiling_generator_dw(input_dnn,tmp_hw_spec2)
-pe_array_pool=pe_array_dimention_optimizer(input_dnn,tmp_hw_spec)
-pe_arra_pool_dw=pe_array_dimention_optimizer_dw(input_dnn,tmp_hw_spec2)
-#exit()
-for _ in range(100):
+trials=500
+out_of_limit_num=0
+for _ in range(trials):
     #pick a pe array
     pe_array=randint(0,3)
     #complete the rest of the lp_order: local buffer(rf), global buffer(gb), dram
@@ -293,49 +387,35 @@ for _ in range(100):
     #translate the lp_order to string format
     lp_order_string=dram_invariant_looporder(pe_array,input_lp_order_dram, input_lp_order_gb,input_lp_order_rf)
 
-
-    #pe array
-    # pe_array_dim_space_1=pe_array_dim_space_all[pe_array]
-    # pe_array_dim_choices=[]
-    # for i in pe_array_dim_space_1:
-    #     pe_array_dim_choices.append(randint(0,i-1))
-
-    #one set for standard conv/group conv
-    pe_array_dim_choices=randint(0,9)
-    #register file
-    tiling_choices=[]
-    for i in tiling_space_rf:
-        tiling_choices.append(randint(0,i-1))
-    #global buffer
-    tiling_choices1=[]
-    for i in tiling_space_gb:
-        tiling_choices1.append(randint(0,i-1))
-    print(tiling_choices1)
-
-    #another set for depthwise conv
-
-    pe_array_dim_choices_dw=randint(0,9)
-    #register file
-    tiling_choices_dw=[]
-    for i in tiling_space_rf_dw:
-        tiling_choices_dw.append(randint(0,i-1))
-    #global buffer
-    tiling_choices1_dw=[]
-    for i in tiling_space_gb_dw:
-        tiling_choices1_dw.append(randint(0,i-1))
+    #tiling represent the ratio of the dimensions for each buffer
+    #can not be zero!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    tiling_rf=[]
+    for i in range(6):
+        tiling_rf.append(randint(1,10))
 
 
-    #next translate the tiling scheme to dict/string format for energy mode
-    #Guess what... NO DSP LIMIT now !!! already enforced
-    #but.....there is something else .....
-    #no memory check, the 900000000.. value means that the memory consumption exceeded
-    [tiling_string,consumption]=tiling_translation(tiling_choices,tiling_choices1,pe_array_dim_choices,pe_array,pe_array_pool,tiling_choices_dict,input_dnn)
+    tiling_noc=[]
+    if pe_array==3:
+        for i in range(3):
+            tiling_noc.append(randint(1,10))
+    else:
+        for i in range(4):
+            tiling_noc.append(randint(1,10))
+
+    tiling_gb = []
+    for i in range(6):
+        tiling_gb.append(randint(1,10))
+    consumption = hardware_translation(tiling_rf, tiling_noc, tiling_gb, pe_array, tmp_hw_spec)
+    [tiling_string, consumption] = tiling_translation(consumption, input_dnn)
     #pass for EDP feedback
     #print(pe_array)
     # print(tiling_string)
     # print(lp_order_string)
     penalty=get_score_whole_dnn(tiling_string, consumption, tmp_hw_spec, lp_order_string, input_dnn)
     print(penalty)
+    if not penalty[1]:
+        out_of_limit_num+=1
+print(out_of_limit_num/trials)
 
     # get_score_whole_dnn(tiling_string,input_dnn[0][0],tmp_hw_spec,df_order=lp_order_string)
     # print(life_eval(tiling_string,input_dnn[0][0],tmp_hw_spec,df_order=lp_order_string))
