@@ -233,14 +233,14 @@ def resource_allocator(input_dnn,tmp_hw_spec):
                         layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
                         layer[1]['row_out'][0])
             comp.append(layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
-                        layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_kernel'][0]*layer[1]['col_out'][0]*\
                         layer[1]['row_out'][0])
         elif layer[2]==1:
             para.append(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
                         layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
                         layer[1]['row_out'][0]+layer[0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
                         layer[1]['row_out'][0])
-            comp.append(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+            comp.append(layer[1]['col_kernel'][0]*\
                         layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
                         layer[1]['row_out'][0])
         elif layer[2] == 2:
@@ -248,9 +248,9 @@ def resource_allocator(input_dnn,tmp_hw_spec):
                         layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
                         layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
                         layer[1]['row_out'][0])*layer[3])
-            comp.append((layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+            comp.append((layer[1]['ch_in'][0]*layer[1]['col_kernel'][0]*\
                         layer[1]['row_kernel'][0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
-                        layer[1]['row_out'][0]/layer[3])*layer[3])
+                        layer[1]['row_out'][0])*layer[3])
     for i in para:
         gb_all.append(math.ceil(i/sum(para)*gb))
     for i in comp:

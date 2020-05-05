@@ -58,7 +58,6 @@ tmp_hw_spec={\
 }
 
 
-tmp_hw_spec_list=resource_allocator(input_dnn,tmp_hw_spec)
 
 # tiling1=asic_tiling_generator(input_dnn,hw_spec)
 # print(tiling1.rs2_rf_gb_tiling_choices_num[5][5])
@@ -70,9 +69,8 @@ tmp_hw_spec_list=resource_allocator(input_dnn,tmp_hw_spec)
 ############################
 
 
-#generate the design space of all possible tiling factors
-#the space is partitioned according to alloc_slots based on the rf_noc_template choice (PE array)
 tiling1=fpga_tiling_generator(input_dnn,tmp_hw_spec)
+tmp_hw_spec_list=resource_allocator(input_dnn,tmp_hw_spec)
 score=[]
 max_trials=500
 out_of_limit_num=0

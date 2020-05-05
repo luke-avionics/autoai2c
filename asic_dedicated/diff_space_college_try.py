@@ -25,7 +25,7 @@ def dram_invariant_looporder(pe_array, input_lp_order_dram, input_lp_order_gb,in
     input_lp_order_rf=copy.deepcopy(input_lp_order_rf)
     if not (len(input_lp_order_gb)==len(set(input_lp_order_gb)) and len(input_lp_order_dram)==len(set(input_lp_order_dram))):
         raise Exception('Please provide lp_order with no duplicate elements')
-    input_rf=copy.deepcopy(rf_noc_template[pe_array])
+    input_rf=copy.deepcopy(noc_template[pe_array])
     lp_order_template_dram=['col_out_dram', 'ch_out_dram', 'batch_dram','ch_in_dram','row_out_dram','col_kernel_dram','row_kernel_dram']
     lp_order_template_gb=['ch_out_gb','ch_in_gb','col_kernel_gb', 'row_out_gb','batch_gb','col_out_gb','row_kernel_gb']
     lp_order_template_rf= ['col_out_rf', 'batch_rf', 'row_out_rf', 'ch_out_rf', 'row_kernel_rf',  'ch_in_rf',  'col_kernel_rf']
@@ -41,24 +41,66 @@ def dram_invariant_looporder(pe_array, input_lp_order_dram, input_lp_order_gb,in
     return copy.deepcopy(lp_order_string)
 
 
+def dram_invariant_looporder_dw(pe_array, input_lp_order_dram, input_lp_order_gb, input_lp_order_rf):
+    # input_lp_order:[range(0,4),                                                                           ]
+    #                 pe_array  ,1st pos   ,2nd pos   , 3rd pos  , .........................................
 
+    input_lp_order_dram = copy.deepcopy(input_lp_order_dram)
+    input_lp_order_gb = copy.deepcopy(input_lp_order_gb)
+    input_lp_order_rf = copy.deepcopy(input_lp_order_rf)
+    if not (len(input_lp_order_gb) == len(set(input_lp_order_gb)) and len(input_lp_order_dram) == len(
+            set(input_lp_order_dram))):
+        raise Exception('Please provide lp_order with no duplicate elements')
+    input_rf = copy.deepcopy(noc_template_dw[pe_array])
+    lp_order_template_dram = ['col_out_dram', 'ch_out_dram', 'batch_dram', 'row_out_dram',
+                              'col_kernel_dram', 'row_kernel_dram']
+    lp_order_template_gb = ['ch_out_gb', 'col_kernel_gb', 'row_out_gb', 'batch_gb', 'col_out_gb',
+                            'row_kernel_gb']
+    lp_order_template_rf = ['col_out_rf', 'batch_rf', 'row_out_rf', 'ch_out_rf', 'row_kernel_rf',
+                            'col_kernel_rf']
+
+    lp_order_string = []
+    for i in range(len(lp_order_template_rf)):
+        lp_order_string.append(lp_order_template_rf[input_lp_order_rf[i]])
+    lp_order_string += input_rf
+    for i in range(len(lp_order_template_gb)):
+        lp_order_string.append(lp_order_template_gb[input_lp_order_gb[i]])
+    for i in range(len(lp_order_template_dram)):
+        lp_order_string.append(lp_order_template_dram[input_lp_order_dram[i]])
+    return copy.deepcopy(lp_order_string)
+
+
+# input_dnn=[\
+# [1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[128,0],'ch_in':[64,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[128,0],'ch_in':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[256,0],'ch_in':[128,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[512,0],'ch_in':[256,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# [1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+# ]
 
 input_dnn=[\
-[1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[64,0],'ch_in':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[128,0],'ch_in':[64,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[128,0],'ch_in':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[256,0],'ch_in':[128,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[256,0],'ch_in':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[512,0],'ch_in':[256,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
-[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]}],\
+[1,{'ch_out':[64,0],'ch_in':[3,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]},0,1],\
+[1,{'ch_out':[64,0],'batch':[1,0],'col_out':[224,0],'row_out':[224,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[128,0],'batch':[1,0],'col_out':[112,0],'row_out':[112,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[256,0],'batch':[1,0],'col_out':[56,0],'row_out':[56,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},2,2],\
+[1,{'ch_out':[512,0],'batch':[1,0],'col_out':[28,0],'row_out':[28,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},1,1],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},0,1],\
+[1,{'ch_out':[512,0],'ch_in':[512,0],'batch':[1,0],'col_out':[14,0],'row_out':[14,0],'row_kernel':[3,0],'col_kernel':[3,0]},0,1],\
 ]
-
 
 #fpga dedicated 706
 tmp_hw_spec={\
@@ -267,17 +309,89 @@ def hardware_translation(ratio_rf,ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16)
     consumption_dict["row_kernel_gb"] =math.floor( max(ratio_gb[5] * z,1))
     return consumption_dict
 
+def hardware_translation_dw(ratio_rf,ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16):
+    #out_ch, X, Y, X_K, Y_K
+    rf_vol=tmp_hw_spec['rf_vol']/bw
+    gb_vol=tmp_hw_spec['gb_vol']/bw
+    pe_num=tmp_hw_spec['num_pe']
+    a=(ratio_rf[0]*(ratio_rf[1]+ratio_rf[3]-1)*(ratio_rf[2]+ratio_rf[4]-1))+(ratio_rf[0] * ratio_rf[1] * ratio_rf[2])
+    #a=(ratio_rf[0]*(ratio_rf[2])*(ratio_rf[3]))+(ratio_rf[1] * ratio_rf[2] * ratio_rf[3])
+    b=(ratio_rf[0] * ratio_rf[1] * ratio_rf[3]*ratio_rf[4])
+    x=0
+    #solve poly
+    roots=np.roots([b,a,0,0,-rf_vol])
+    roots=roots[np.isreal(roots)]
+    for i in roots:
+        if float(i.real)>0:
+            x=(i.real)
+    #calculate rf
+    consumption_dict={}
+    consumption_dict["ch_out_rf"] = math.floor(max(ratio_rf[0] * x,1))
+    consumption_dict["col_out_rf"] = math.floor(max(ratio_rf[1] * x,1))
+    consumption_dict["row_out_rf"] = math.floor(max(ratio_rf[2] * x,1))
+    consumption_dict["col_kernel_rf"] = math.floor(max(ratio_rf[3] * x,1))
+    consumption_dict["row_kernel_rf"] = math.floor(max(ratio_rf[4] * x,1))
+    #calculate pe
+    if pe_array==3:
+        y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
+        consumption_dict['row_out_noc']=max(math.floor(y*ratio_noc[0]),1)
+        consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
+        consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+    elif pe_array==0:
+        y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
+        consumption_dict['col_kernel_noc']=max(math.floor(y*ratio_noc[0]),1)
+        consumption_dict['row_kernel_noc'] = max(math.floor(y * ratio_noc[1] * y), 1)
+        consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+    elif pe_array == 1:
+        y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
+        consumption_dict['col_kernel_noc'] = max(math.floor(y * ratio_noc[0] ), 1)
+        consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
+        consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+    elif pe_array == 2:
+        y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
+        consumption_dict['row_kernel_noc'] = max(math.floor(y * ratio_noc[0] ), 1)
+        consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
+        consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+    #calculate gb
 
+    in_rf_consumption=consumption_dict["ch_out_rf"]*(consumption_dict["col_out_rf"]+consumption_dict['col_kernel_rf']-1)*(consumption_dict["row_out_rf"]+consumption_dict['row_kernel_rf']-1)
+    out_rf_consumption=consumption_dict["ch_out_rf"] * consumption_dict["col_out_rf"] * consumption_dict["row_out_rf"]
+    we_rf_consumption= consumption_dict["ch_out_rf"] * consumption_dict["col_kernel_rf"]*consumption_dict["row_kernel_rf"]
+    #print((in_rf_consumption +out_rf_consumption+we_rf_consumption)*16)
+    in_rf_consumption_for_all_pes=in_rf_consumption
+    out_rf_consumption_for_all_pes=out_rf_consumption
+    we_rf_consumption_for_all_pes=we_rf_consumption
+    for i in consumption_dict:
+        if 'noc' in i:
+            if 'ch_out' in i:
+                in_rf_consumption_for_all_pes *= consumption_dict[i]
+                out_rf_consumption_for_all_pes*=consumption_dict[i]
+                we_rf_consumption_for_all_pes*=consumption_dict[i]
+            elif ('col_out' in i) or ('row_out' in i):
+                in_rf_consumption_for_all_pes*=consumption_dict[i]
+                out_rf_consumption_for_all_pes*=consumption_dict[i]
+            elif ('row_kernel' in i) or ('col_kernel' in i):
+                we_rf_consumption_for_all_pes *= consumption_dict[i]
+            else:
+                pass
+
+    a=(ratio_gb[0]*ratio_gb[1]*ratio_gb[2])*in_rf_consumption_for_all_pes+(ratio_gb[0] * ratio_gb[1] * ratio_gb[2])*out_rf_consumption_for_all_pes
+    b=(ratio_gb[0] * ratio_gb[3]*ratio_gb[4])*we_rf_consumption_for_all_pes
+    roots=np.roots([b,a,0,0,-gb_vol])
+    roots=roots[np.isreal(roots)]
+    z=0
+    for i in roots:
+        if float(i.real)>0:
+            z=i.real
+    consumption_dict["ch_out_gb"] = math.floor(max(ratio_gb[0] * z,1))
+    consumption_dict["col_out_gb"] = math.floor(max(ratio_gb[1] * z,1))
+    consumption_dict["row_out_gb"] = math.floor(max(ratio_gb[2] * z,1))
+    consumption_dict["col_kernel_gb"] =math.floor( max(ratio_gb[3] * z,1))
+    consumption_dict["row_kernel_gb"] =math.floor( max(ratio_gb[4] * z,1))
+    return consumption_dict
 
 def tiling_translation( consumption_dict, input_dnn):
     tiling_str = []
-    pe_array_dim_choices_dict={}
-    pe_array_dim_choices_dict[0]= copy.deepcopy(noc_template[0])
-    pe_array_dim_choices_dict[1]= copy.deepcopy(noc_template[1])
-    pe_array_dim_choices_dict[2]= copy.deepcopy(noc_template[2])
-    pe_array_dim_choices_dict[3]= copy.deepcopy(noc_template[3])
-
-
     for layer in input_dnn:
         tiling_str.append({})
         for i in consumption_dict:
@@ -312,6 +426,41 @@ def tiling_translation( consumption_dict, input_dnn):
                 raise
     return tiling_str,consumption_dict
 
+def tiling_translation_dw(consumption_dict, input_dnn):
+    tiling_str = []
+    for layer in input_dnn:
+        tiling_str.append({})
+        for i in consumption_dict:
+            if "rf" in i:
+                tiling_str[-1][i]=min(consumption_dict[i],layer[1][str(i)[:-3]][0])
+        for i in consumption_dict:
+            if "noc" in i:
+                tiling_str[-1][i]=min(consumption_dict[i],math.ceil(layer[1][str(i)[:-4]][0]/tiling_str[-1][str(i)[:-4]+"_rf"]))
+        for i in consumption_dict:
+            if "gb" in i:
+                try:
+                    tiling_str[-1][i] = min(consumption_dict[i],
+                                        math.ceil(layer[1][str(i)[:-3]][0] / tiling_str[-1][str(i)[:-3] + "_noc"]/tiling_str[-1][str(i)[:-3] + "_rf"]))
+                except KeyError:
+                    tiling_str[-1][i] = min(consumption_dict[i],
+                                            math.ceil(layer[1][str(i)[:-3]][0] /
+                                                      tiling_str[-1][str(i)[:-3] + "_rf"]))
+                except:
+                    raise
+        tiling_str[-1]['batch_rf']=tiling_str[-1]['batch_gb']=1
+        consumption_dict['batch_rf']=consumption_dict['batch_gb']=1
+        dram_list=['col_out_dram', 'ch_out_dram', 'batch_dram','row_out_dram','col_kernel_dram','row_kernel_dram']
+        for i in dram_list:
+            consumption_dict[i]=1
+            try:
+                tiling_str[-1][i] =math.ceil(layer[1][str(i)[:-5]][0] / tiling_str[-1][str(i)[:-5] + "_gb"]/ tiling_str[-1][str(i)[:-5] + "_noc"] / tiling_str[-1][
+                                            str(i)[:-5] + "_rf"])
+            except KeyError:
+                tiling_str[-1][i] =math.ceil(layer[1][str(i)[:-5]][0] / tiling_str[-1][str(i)[:-5] + "_gb"]/ tiling_str[-1][
+                                            str(i)[:-5] + "_rf"])
+            except:
+                raise
+    return tiling_str,consumption_dict
 
 
 
@@ -324,7 +473,7 @@ def get_score_whole_dnn(tiling_string,consumption,tmp_hw_spec,lp_order_string,in
         return [penalty[0], buffer_not_exceed]
     edp_raw=[0,0]
     for layer in range(len(input_dnn)):
-        [penalty, buffer_not_exceed] = life_eval(tiling_string[layer], input_dnn[layer][0], tmp_hw_spec,0,group_num=1,df_order=lp_order_string)
+        [penalty, buffer_not_exceed] = life_eval(tiling_string[layer], input_dnn[layer][0], tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)
         if not buffer_not_exceed:
             print('a oh...')
             return [penalty[0], buffer_not_exceed]
@@ -336,17 +485,47 @@ def get_score_whole_dnn(tiling_string,consumption,tmp_hw_spec,lp_order_string,in
     # print(life_eval(tiling_string,input_dnn[0][0],tmp_hw_spec,df_order=lp_order_string))
 
 def resource_allocator_depth_std(input_dnn,tmp_hw_spec):
+    input_dnn=copy.deepcopy(input_dnn)
+    input_dnn_std=[]
+    input_dnn_dw=[]
+    for layer in input_dnn:
+        if layer[2]==1:
+            input_dnn_dw.append(layer)
+        else:
+            input_dnn_std.append(layer)
+    para_dw=0
+    para_std=0
+    comp_dw=0
+    comp_std=0
+    for layer in input_dnn:
+        if layer[2]==0 or layer[2]==2:
+            para_std+=  ((layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_in'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])*layer[3])
+            comp_std+=((layer[1]['ch_in'][0]*layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])*layer[3])
+        elif layer[2]==1:
+            para_dw+=(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]+layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0]+layer[0]*layer[1]['ch_out'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+            comp_dw+=(layer[1]['ch_out'][0]*layer[1]['col_kernel'][0]*\
+                        layer[1]['row_kernel'][0]*layer[1]['col_out'][0]*\
+                        layer[1]['row_out'][0])
+
     tmp_hw_spec1 = { \
-        'gb_vol': 10 * 1024 * 8, \
-        'rf_vol': 512 * 8, \
-        'num_pe': 129, \
-        'num_rf': 129
+        'gb_vol': math.ceil(tmp_hw_spec['gb_vol']*para_std/(para_dw+para_std)), \
+        'rf_vol': math.ceil(tmp_hw_spec['rf_vol']*para_std/(para_dw+para_std)), \
+        'num_pe': math.ceil(tmp_hw_spec['num_pe']*comp_std/(comp_dw+comp_std)), \
+        'num_rf': math.ceil(tmp_hw_spec['num_rf']*comp_std/(comp_dw+comp_std))
     }
     tmp_hw_spec2 = { \
-        'gb_vol': 10 * 1024 * 8, \
-        'rf_vol': 512 * 8, \
-        'num_pe': 129, \
-        'num_rf': 129
+        'gb_vol': math.ceil(tmp_hw_spec['gb_vol']*para_dw/(para_dw+para_std)), \
+        'rf_vol': math.ceil(tmp_hw_spec['rf_vol']*para_dw/(para_dw+para_std)), \
+        'num_pe': math.ceil(tmp_hw_spec['num_pe']*comp_dw/(comp_dw+comp_std)), \
+        'num_rf': math.ceil(tmp_hw_spec['num_rf']*comp_dw/(comp_dw+comp_std))
     }
 
     return tmp_hw_spec1, tmp_hw_spec2
@@ -366,54 +545,94 @@ def resource_allocator_depth_std(input_dnn,tmp_hw_spec):
 
 #generate the design space of all possible tiling factors
 #the space is partitioned according to alloc_slots based on the rf_noc_template choice (PE array)
+
+[tmp_hw_spec1,tmp_hw_spec2]=resource_allocator_depth_std(input_dnn,tmp_hw_spec)
+print(tmp_hw_spec1)
+print(tmp_hw_spec2)
+
 trials=500
 out_of_limit_num=0
 for _ in range(trials):
-    #pick a pe array
-    pe_array=randint(0,3)
-    #complete the rest of the lp_order: local buffer(rf), global buffer(gb), dram
 
+    #split the network from std/group and depthwise
+    input_dnn_dw=[]
+    input_dnn_std=[]
+    for layer in copy.deepcopy(input_dnn):
+        if layer[2]==1:
+            input_dnn_dw.append(layer)
+        else:
+            input_dnn_std.append(layer)
+
+    #pick a pe array
+    pe_array_std=randint(0,3)
+    pe_array_dw=randint(0,3)
+
+    #complete the rest of the lp_order: local buffer(rf), global buffer(gb), dram
     # one set for standard conv/group conv
-    input_lp_order_rf=list(range(7))
-    shuffle(input_lp_order_rf)
-    input_lp_order_gb=list(range(7))
-    shuffle(input_lp_order_gb)
-    input_lp_order_dram=list(range(7))
-    shuffle(input_lp_order_dram)
+    input_lp_order_rf_std=list(range(7))
+    shuffle(input_lp_order_rf_std)
+    input_lp_order_gb_std=list(range(7))
+    shuffle(input_lp_order_gb_std)
+    input_lp_order_dram_std=list(range(7))
+    shuffle(input_lp_order_dram_std)
 
     # another set for depthwise conv
-
+    input_lp_order_rf_dw=list(range(6))
+    shuffle(input_lp_order_rf_dw)
+    input_lp_order_gb_dw=list(range(6))
+    shuffle(input_lp_order_gb_dw)
+    input_lp_order_dram_dw=list(range(6))
+    shuffle(input_lp_order_dram_dw)
 
     #translate the lp_order to string format
-    lp_order_string=dram_invariant_looporder(pe_array,input_lp_order_dram, input_lp_order_gb,input_lp_order_rf)
+    lp_order_string_std=dram_invariant_looporder(pe_array_std,input_lp_order_dram_std, input_lp_order_gb_std,input_lp_order_rf_std)
+    lp_order_string_dw=dram_invariant_looporder_dw(pe_array_dw,input_lp_order_dram_dw, input_lp_order_gb_dw,input_lp_order_rf_dw)
+
 
     #tiling represent the ratio of the dimensions for each buffer
     #can not be zero!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    tiling_rf=[]
+    #dw -- std
+    tiling_rf_std=[]
+    tiling_rf_dw=[]
     for i in range(6):
-        tiling_rf.append(randint(1,10))
+        tiling_rf_std.append(randint(1,10))
+    for i in range(5):
+        tiling_rf_dw.append(randint(1, 10))
 
-
-    tiling_noc=[]
-    if pe_array==3:
+    #std
+    tiling_noc_std=[]
+    if pe_array_std==3:
         for i in range(3):
-            tiling_noc.append(randint(1,10))
+            tiling_noc_std.append(randint(1,10))
     else:
         for i in range(4):
-            tiling_noc.append(randint(1,10))
-
-    tiling_gb = []
+            tiling_noc_std.append(randint(1,10))
+    #dw
+    tiling_noc_dw=[]
+    for i in range(3):
+        tiling_noc_dw.append(randint(1,10))
+    #dw -- std
+    tiling_gb_std= []
+    tiling_gb_dw=[]
     for i in range(6):
-        tiling_gb.append(randint(1,10))
-    consumption = hardware_translation(tiling_rf, tiling_noc, tiling_gb, pe_array, tmp_hw_spec)
-    [tiling_string, consumption] = tiling_translation(consumption, input_dnn)
+        tiling_gb_std.append(randint(1,10))
+    for i in range(5):
+        tiling_gb_dw.append(randint(1,10))
+
+    #dw -- std
+    consumption_std = hardware_translation(tiling_rf_std, tiling_noc_std, tiling_gb_std, pe_array_std, tmp_hw_spec1)
+    consumption_dw = hardware_translation_dw(tiling_rf_dw, tiling_noc_dw, tiling_gb_dw, pe_array_dw, tmp_hw_spec2)
+    [tiling_string_std, consumption_std] = tiling_translation(consumption_std, input_dnn_std)
+    [tiling_string_dw, consumption_dw] = tiling_translation_dw(consumption_dw, input_dnn_dw)
     #pass for EDP feedback
     #print(pe_array)
     # print(tiling_string)
     # print(lp_order_string)
-    penalty=get_score_whole_dnn(tiling_string, consumption, tmp_hw_spec, lp_order_string, input_dnn)
-    print(penalty)
-    if not penalty[1]:
+    penalty_std=get_score_whole_dnn(tiling_string_std, consumption_std, tmp_hw_spec1, lp_order_string_std, input_dnn_std)
+    penalty_dw = get_score_whole_dnn(tiling_string_dw, consumption_dw, tmp_hw_spec2, lp_order_string_dw, input_dnn_dw)
+    print(penalty_std)
+    print(penalty_dw)
+    if (not penalty_std[1]) or (not penalty_dw[1]):
         out_of_limit_num+=1
 print(out_of_limit_num/trials)
 
