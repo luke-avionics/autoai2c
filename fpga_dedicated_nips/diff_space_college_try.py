@@ -14,7 +14,92 @@ from sympy.solvers import solve
 from sympy import Symbol
 
 
+def Quartic(args):
+    a, b, c, d, e = args
+    if a == 0:
+        return Cubic(args[1:])
+    if e == 0:
+        res = Cubic(args[0:-1])
+        res.append((0, 0))
+        return res
+    if a != 1:
+        b /= a
+        c /= a
+        d /= a
+        e /= a
 
+    cb = -c
+    cc = -4.0 * e + d * b
+    cd = -(b * b * e + d * d) + 4.0 * c * e
+    if cd == 0:
+        print('cd==0')
+    q = (3.0 * cc - (cb * cb)) / 9.0
+    r = -(27.0 * cd) + cb * (9.0 * cc - 2.0 * (cb * cb))
+    r /= 54.0
+    discrim = q * q * q + r * r
+    term1 = (cb / 3.0)
+    if discrim > 0:
+        s = r + math.sqrt(discrim)
+        s = -math.pow(-s, (1.0 / 3.0)) if s < 0 else math.pow(s, (1.0 / 3.0))
+        t = r - math.sqrt(discrim)
+        t = -math.pow(-t, (1.0 / 3.0)) if t < 0 else math.pow(t, (1.0 / 3.0))
+        y1 = -term1 + s + t
+    else:
+        if discrim == 0:
+            r13 = -math.pow(-r, (1.0 / 3.0)) if r > 0 else math.pow(r, (1.0 / 3.0))
+            y1 = -term1 + 2.0 * r13
+        else:
+            q = -q
+            dum1 = q * q * q
+            dum1 = math.acos(r / math.sqrt(dum1))
+            r13 = 2.0 * math.sqrt(q)
+            y1 = -term1 + r13 * math.cos(dum1 / 3.0)
+
+    term1 = b / 4.0
+    sqR = -c + term1 * b + y1
+    RRe = RIm = DRe = DIm = ERe = EIm = z1Re = z1Im = z2Re = 0
+    if sqR >= 0:
+        if sqR == 0:
+            dum1 = -(4.0 * e) + y1 * y1
+            if dum1 < 0:
+                z1Im = 2.0 * math.sqrt(-dum1)
+            else:
+                z1Re = 2.0 * math.sqrt(dum1)
+                z2Re = -z1Re
+        else:
+            RRe = math.sqrt(sqR)
+            z1Re = -(8.0 * d + b * b * b) / 4.0 + b * c
+            z1Re /= RRe
+            z2Re = -z1Re
+    else:
+        RIm = math.sqrt(-sqR)
+        z1Im = -(8.0 * d + b * b * b) / 4.0 + b * c
+        z1Im /= RIm
+        z1Im = -z1Im
+    z1Re += -(2.0 * c + sqR) + 3.0 * b * term1
+    z2Re += -(2.0 * c + sqR) + 3.0 * b * term1
+
+    if z1Im == 0:
+        if z1Re >= 0:
+            DRe = math.sqrt(z1Re)
+        else:
+            DIm = math.sqrt(-z1Re)
+        if z2Re >= 0:
+            ERe = math.sqrt(z2Re)
+        else:
+            EIm = math.sqrt(-z2Re)
+    else:
+        r = math.sqrt(z1Re * z1Re + z1Im * z1Im)
+        r = math.sqrt(r)
+        dum1 = math.atan2(z1Im, z1Re)
+        dum1 /= 2
+        ERe = DRe = r * math.cos(dum1)
+        DIm = r * math.sin(dum1)
+        EIm = -DIm
+    return [(-term1 + (RRe + DRe) / 2, (RIm + DIm) / 2),
+            (-(term1 + DRe / 2) + RRe / 2, (-DIm + RIm) / 2),
+            (-(term1 + RRe / 2) + ERe / 2, (-RIm + EIm) / 2),
+            (-(term1 + (RRe + ERe) / 2), -(RIm + EIm) / 2)]
 
 def dram_invariant_looporder(pe_array, input_lp_order_dram, input_lp_order_gb):
     # input_lp_order:[range(0,4),                                                                           ]
@@ -98,10 +183,11 @@ input_dnn=[\
 #fpga dedicated 706
 tmp_hw_spec={\
     'gb_vol':20*1024*1024*8, \
-    'rf_vol':20*8, \
+    'rf_vol':8000, \
     'num_pe':900, \
     'num_rf':900
 }
+
 
 
 
@@ -228,36 +314,73 @@ def hardware_translation(ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16):
     consumption_dict["row_out_rf"] =1
     consumption_dict["col_kernel_rf"] =1
     consumption_dict["row_kernel_rf"] = 1
+    scaling_ratio=1
     #calculate pe
     if pe_array==3:
         y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
         consumption_dict['row_out_noc']=max(math.floor(y*ratio_noc[0]),1)
         consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+        scaling_ratio=(pe_num/(consumption_dict['row_out_noc']*consumption_dict['col_out_noc']*consumption_dict['ch_out_noc']))
+        if scaling_ratio<1:
+            components_need_scaled=[]
+            for i in consumption_dict:
+                    if "noc" in i:
+                        if consumption_dict[i]!=1:
+                            components_need_scaled.append(str(i))
+            for i in components_need_scaled:
+                consumption_dict[i] = math.floor(consumption_dict[i] * (scaling_ratio ** (1 / len(components_need_scaled))))
     elif pe_array==0:
         y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2]/ratio_noc[3])**(1/4)
         consumption_dict['col_kernel_noc']=max(math.floor(y*ratio_noc[0]),1)
         consumption_dict['row_kernel_noc'] = max(math.floor(y * ratio_noc[1] * y), 1)
         consumption_dict['ch_in_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[3] ), 1)
+        scaling_ratio = (pe_num / (consumption_dict['col_kernel_noc'] * consumption_dict['row_kernel_noc'] * consumption_dict['ch_in_noc']*consumption_dict['ch_out_noc']))
+        if scaling_ratio<1:
+            components_need_scaled=[]
+            for i in consumption_dict:
+                    if "noc" in i:
+                        if consumption_dict[i]!=1:
+                            components_need_scaled.append(str(i))
+            for i in components_need_scaled:
+                consumption_dict[i] = math.floor(consumption_dict[i] * (scaling_ratio ** (1 / len(components_need_scaled))))
     elif pe_array == 1:
         y = (pe_num / ratio_noc[0] / ratio_noc[1] / ratio_noc[2] / ratio_noc[3]) ** (1 / 4)
         consumption_dict['col_kernel_noc'] = max(math.floor(y * ratio_noc[0] ), 1)
         consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
         consumption_dict['ch_in_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[3] ), 1)
+        scaling_ratio = (pe_num / (consumption_dict['col_kernel_noc'] * consumption_dict['col_out_noc'] * consumption_dict['ch_in_noc']*consumption_dict['ch_out_noc']))
+        if scaling_ratio<1:
+            components_need_scaled=[]
+            for i in consumption_dict:
+                    if "noc" in i:
+                        if consumption_dict[i]!=1:
+                            components_need_scaled.append(str(i))
+            for i in components_need_scaled:
+                consumption_dict[i] = math.floor(consumption_dict[i] * (scaling_ratio ** (1 / len(components_need_scaled))))
     elif pe_array == 2:
         y = (pe_num / ratio_noc[0] / ratio_noc[1] / ratio_noc[2] / ratio_noc[3]) ** (1 / 4)
         consumption_dict['row_kernel_noc'] = max(math.floor(y * ratio_noc[0] ), 1)
         consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
         consumption_dict['ch_in_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[3] ), 1)
+        scaling_ratio = (pe_num /( consumption_dict['row_kernel_noc'] * consumption_dict['col_out_noc'] * consumption_dict['ch_in_noc']*consumption_dict['ch_out_noc']))
+        if scaling_ratio<1:
+            components_need_scaled=[]
+            for i in consumption_dict:
+                    if "noc" in i:
+                        if consumption_dict[i]!=1:
+                            components_need_scaled.append(str(i))
+            for i in components_need_scaled:
+                consumption_dict[i] = math.floor(consumption_dict[i] * (scaling_ratio ** (1 / len(components_need_scaled))))
     #calculate gb
 
     in_rf_consumption=consumption_dict["ch_in_rf"]*(consumption_dict["col_out_rf"]+consumption_dict['col_kernel_rf']-1)*(consumption_dict["row_out_rf"]+consumption_dict['row_kernel_rf']-1)
     out_rf_consumption=consumption_dict["ch_out_rf"] * consumption_dict["col_out_rf"] * consumption_dict["row_out_rf"]
     we_rf_consumption=consumption_dict["ch_in_rf"] * consumption_dict["ch_out_rf"] * consumption_dict["col_kernel_rf"]*consumption_dict["row_kernel_rf"]
-    print((in_rf_consumption +out_rf_consumption+we_rf_consumption)*16)
+    #print((in_rf_consumption +out_rf_consumption+we_rf_consumption)*16)
     in_rf_consumption_for_all_pes=in_rf_consumption
     out_rf_consumption_for_all_pes=out_rf_consumption
     we_rf_consumption_for_all_pes=we_rf_consumption
@@ -290,6 +413,23 @@ def hardware_translation(ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16):
     consumption_dict["row_out_gb"] = math.floor(max(ratio_gb[3] * z,1))
     consumption_dict["col_kernel_gb"] =math.floor( max(ratio_gb[4] * z,1))
     consumption_dict["row_kernel_gb"] =math.floor( max(ratio_gb[5] * z,1))
+    scaling_ratio=(gb_vol/(consumption_dict["ch_in_gb"]*(consumption_dict["row_out_gb"]+consumption_dict['row_kernel_gb']-1)*(consumption_dict["col_out_gb"]+consumption_dict["col_kernel_gb"]-1)*in_rf_consumption_for_all_pes+consumption_dict["ch_out_gb"]*consumption_dict["row_out_gb"]*consumption_dict["col_out_gb"]*out_rf_consumption_for_all_pes+ \
+                          consumption_dict["ch_in_gb"]*consumption_dict["ch_out_gb"] * consumption_dict["col_kernel_gb"] * consumption_dict["row_kernel_gb"] * we_rf_consumption_for_all_pes))
+    while scaling_ratio<1:
+        components_need_scaled = {}
+        for i in consumption_dict:
+            if ("gb" in i):
+                if consumption_dict[i] != 1:
+                    components_need_scaled[str(i)]=consumption_dict[i]
+        if len(components_need_scaled)==sum(components_need_scaled.values()):
+            print('can not fit the gb requirement')
+            raise
+        for i in components_need_scaled:
+            consumption_dict[i] -=1
+            consumption_dict[i] =max(consumption_dict[i],0)
+        scaling_ratio = (gb_vol / (consumption_dict["ch_in_gb"] * (consumption_dict["row_out_gb"]+consumption_dict['row_kernel_gb']-1) * (consumption_dict["col_out_gb"]+consumption_dict["col_kernel_gb"]-1) * in_rf_consumption_for_all_pes + consumption_dict["ch_out_gb"] * consumption_dict["row_out_gb"] * consumption_dict["col_out_gb"] * out_rf_consumption_for_all_pes + \
+                                   consumption_dict["ch_in_gb"] * consumption_dict["ch_out_gb"] * consumption_dict["col_kernel_gb"] * consumption_dict["row_kernel_gb"] * we_rf_consumption_for_all_pes))
+
     return consumption_dict
 
 def hardware_translation_dw(ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16):
@@ -309,21 +449,57 @@ def hardware_translation_dw(ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16):
         consumption_dict['row_out_noc']=max(math.floor(y*ratio_noc[0]),1)
         consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+        scaling_ratio=(pe_num/(consumption_dict['row_out_noc']*consumption_dict['col_out_noc']*consumption_dict['ch_out_noc']))
+        if scaling_ratio<1:
+            components_need_scaled=[]
+            for i in consumption_dict:
+                    if "noc" in i:
+                        if consumption_dict[i]!=1:
+                            components_need_scaled.append(str(i))
+            for i in components_need_scaled:
+                consumption_dict[i] = math.floor(consumption_dict[i] * (scaling_ratio ** (1 / len(components_need_scaled))))
     elif pe_array==0:
         y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
         consumption_dict['col_kernel_noc']=max(math.floor(y*ratio_noc[0]),1)
         consumption_dict['row_kernel_noc'] = max(math.floor(y * ratio_noc[1] * y), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+        scaling_ratio =(pe_num / (consumption_dict['col_kernel_noc'] * consumption_dict['row_kernel_noc'] *consumption_dict['ch_out_noc']))
+        if scaling_ratio<1:
+            components_need_scaled=[]
+            for i in consumption_dict:
+                    if "noc" in i:
+                        if consumption_dict[i]!=1:
+                            components_need_scaled.append(str(i))
+            for i in components_need_scaled:
+                consumption_dict[i] = math.floor(consumption_dict[i] * (scaling_ratio ** (1 / len(components_need_scaled))))
     elif pe_array == 1:
         y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
         consumption_dict['col_kernel_noc'] = max(math.floor(y * ratio_noc[0] ), 1)
         consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+        scaling_ratio =(pe_num / (consumption_dict['col_kernel_noc'] * consumption_dict['col_out_noc'] *consumption_dict['ch_out_noc']))
+        if scaling_ratio<1:
+            components_need_scaled=[]
+            for i in consumption_dict:
+                    if "noc" in i:
+                        if consumption_dict[i]!=1:
+                            components_need_scaled.append(str(i))
+            for i in components_need_scaled:
+                consumption_dict[i] = math.floor(consumption_dict[i] * (scaling_ratio ** (1 / len(components_need_scaled))))
     elif pe_array == 2:
         y=(pe_num/ratio_noc[0]/ratio_noc[1]/ratio_noc[2])**(1/3)
         consumption_dict['row_kernel_noc'] = max(math.floor(y * ratio_noc[0] ), 1)
         consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
+        scaling_ratio = (pe_num / (consumption_dict['row_kernel_noc'] * consumption_dict['col_out_noc'] *consumption_dict['ch_out_noc']))
+        if scaling_ratio<1:
+            components_need_scaled=[]
+            for i in consumption_dict:
+                    if "noc" in i:
+                        if consumption_dict[i]!=1:
+                            components_need_scaled.append(str(i))
+            for i in components_need_scaled:
+                consumption_dict[i] = math.floor(consumption_dict[i] * (scaling_ratio ** (1 / len(components_need_scaled))))
     #calculate gb
     in_rf_consumption=consumption_dict["ch_out_rf"]*(consumption_dict["col_out_rf"]+consumption_dict['col_kernel_rf']-1)*(consumption_dict["row_out_rf"]+consumption_dict['row_kernel_rf']-1)
     out_rf_consumption=consumption_dict["ch_out_rf"] * consumption_dict["col_out_rf"] * consumption_dict["row_out_rf"]
@@ -348,17 +524,37 @@ def hardware_translation_dw(ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16):
 
     a=(ratio_gb[0]*ratio_gb[1]*ratio_gb[2])*in_rf_consumption_for_all_pes+(ratio_gb[0] * ratio_gb[1] * ratio_gb[2])*out_rf_consumption_for_all_pes
     b=(ratio_gb[0] * ratio_gb[3]*ratio_gb[4])*we_rf_consumption_for_all_pes
-    roots=np.roots([b,a,0,0,-gb_vol])
-    roots=roots[np.isreal(roots)]
-    z=0
-    for i in roots:
-        if float(i.real)>0:
-            z=i.real
+    
+    # roots=np.roots([b,a,0,0,-gb_vol])
+    # roots=roots[np.isreal(roots)]
+    # z=0
+    # for i in roots:
+    #     if float(i.real)>0:
+    #         z=i.real
+
+    z=(gb_vol/(a+b))**(1/3)
     consumption_dict["ch_out_gb"] = math.floor(max(ratio_gb[0] * z,1))
     consumption_dict["col_out_gb"] = math.floor(max(ratio_gb[1] * z,1))
     consumption_dict["row_out_gb"] = math.floor(max(ratio_gb[2] * z,1))
     consumption_dict["col_kernel_gb"] =math.floor( max(ratio_gb[3] * z,1))
     consumption_dict["row_kernel_gb"] =math.floor( max(ratio_gb[4] * z,1))
+    scaling_ratio=(gb_vol/(consumption_dict["ch_out_gb"]*(consumption_dict["row_out_gb"]+consumption_dict['row_kernel_gb']-1)*(consumption_dict["col_out_gb"]+consumption_dict['col_kernel_gb']-1)*in_rf_consumption_for_all_pes+consumption_dict["ch_out_gb"]*consumption_dict["row_out_gb"]*consumption_dict["col_out_gb"]*out_rf_consumption_for_all_pes+ \
+                          consumption_dict["ch_out_gb"] * consumption_dict["col_kernel_gb"] * consumption_dict["row_kernel_gb"] * we_rf_consumption_for_all_pes))**(1/3)
+    while scaling_ratio<1:
+        components_need_scaled = {}
+        for i in consumption_dict:
+            if ("gb" in i):
+                if consumption_dict[i] != 1:
+                    components_need_scaled[str(i)]=consumption_dict[i]
+        if len(components_need_scaled)==sum(components_need_scaled.values()):
+            print('can not fit the gb requirement')
+            raise
+        for i in components_need_scaled:
+            consumption_dict[i] -=1
+            consumption_dict[i] =max(consumption_dict[i],0)
+        scaling_ratio = (gb_vol / (consumption_dict["ch_out_gb"] * (consumption_dict["row_out_gb"] + consumption_dict['row_kernel_gb'] - 1) * (consumption_dict["col_out_gb"] + consumption_dict['col_kernel_gb'] - 1) * in_rf_consumption_for_all_pes + consumption_dict["ch_out_gb"] * consumption_dict["row_out_gb"] * consumption_dict["col_out_gb"] * out_rf_consumption_for_all_pes + \
+                                   consumption_dict["ch_out_gb"] * consumption_dict["col_kernel_gb"] * consumption_dict["row_kernel_gb"] * we_rf_consumption_for_all_pes)) ** (1 / 3)
+
     return consumption_dict
 
 def tiling_translation( consumption_dict, input_dnn):
@@ -447,7 +643,7 @@ def get_score_whole_dnn(tiling_string,consumption,tmp_hw_spec,lp_order_string,in
         [penalty, buffer_not_exceed] = life_eval(tiling_string[layer], input_dnn[layer][0], tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)
         if not buffer_not_exceed:
             print('a oh...')
-            return [penalty[0], buffer_not_exceed]
+            return [(penalty[0],penalty[1]), buffer_not_exceed]
         else:
             edp_raw[0]+=penalty[0]
             edp_raw[1]+=penalty[1]
