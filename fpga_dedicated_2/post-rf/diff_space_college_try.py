@@ -130,6 +130,10 @@ for _ in range(max_trials):
         'num_pe':tmp_hw_spec_list[1][layer], \
         'num_rf':tmp_hw_spec_list[1][layer]\
     }
+
+
+
+    #ATTENTION first element returned from life_eval is not a value, instead a tuple containing energy and latency
     if life_eval(tiling_string,1,p_tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)[1]:
         score.append(life_eval(tiling_string,1,p_tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)[0])
         print("current score: ", score[-1], 'Best score: ', sorted(score, reverse=True)[0])

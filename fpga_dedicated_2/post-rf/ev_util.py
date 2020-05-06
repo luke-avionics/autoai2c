@@ -39,7 +39,7 @@ def life_eval(actions,stride,hw_spec,mode,group_num=1,df_order=None):
         else:
             input_df_order=None
         ene_results=simnas.sample_energy(input_actions,stride,hw_spec,mode,input_df_order=input_df_order)
-        penalty=-(ene_results[0]*1e-8*ene_results[1]*100)*group_num*group_num
+        penalty=(ene_results[0]*1e-8*group_num,ene_results[1]*100*group_num)
         buffer_not_exceed=True
         #print(ene_results[0],ene_results[1])
     #if design hw constraint exceeded, 
@@ -51,7 +51,7 @@ def life_eval(actions,stride,hw_spec,mode,group_num=1,df_order=None):
             print('error:',e)
             print(actions)
             print(df_order)         
-        penalty=-9e12                                  #very strong penalty to over budget
+        penalty=(9e12,9e12)                                  #very strong penalty to over budget
         buffer_not_exceed=False
     return penalty, buffer_not_exceed
 

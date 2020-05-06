@@ -353,7 +353,6 @@ def hardware_translation_dw(ratio_rf,ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=
         consumption_dict['col_out_noc'] = max(math.floor(y * ratio_noc[1] ), 1)
         consumption_dict['ch_out_noc'] = max(math.floor(y * ratio_noc[2] ), 1)
     #calculate gb
-
     in_rf_consumption=consumption_dict["ch_out_rf"]*(consumption_dict["col_out_rf"]+consumption_dict['col_kernel_rf']-1)*(consumption_dict["row_out_rf"]+consumption_dict['row_kernel_rf']-1)
     out_rf_consumption=consumption_dict["ch_out_rf"] * consumption_dict["col_out_rf"] * consumption_dict["row_out_rf"]
     we_rf_consumption= consumption_dict["ch_out_rf"] * consumption_dict["col_kernel_rf"]*consumption_dict["row_kernel_rf"]
@@ -470,7 +469,7 @@ def get_score_whole_dnn(tiling_string,consumption,tmp_hw_spec,lp_order_string,in
     [penalty, buffer_not_exceed]=life_eval(consumption, 1, tmp_hw_spec, 0,group_num=1,df_order=lp_order_string)
     if not buffer_not_exceed:
         print('consumption is out of limit')
-        return [penalty[0], buffer_not_exceed]
+        return [(penalty[0],penalty[1]), buffer_not_exceed]
     edp_raw=[0,0]
     for layer in range(len(input_dnn)):
         [penalty, buffer_not_exceed] = life_eval(tiling_string[layer], input_dnn[layer][0], tmp_hw_spec,input_dnn[layer][2],group_num=input_dnn[layer][3],df_order=lp_order_string)
@@ -480,7 +479,7 @@ def get_score_whole_dnn(tiling_string,consumption,tmp_hw_spec,lp_order_string,in
         else:
             edp_raw[0]+=penalty[0]
             edp_raw[1]+=penalty[1]
-    return  edp_raw[0]* edp_raw[1], True
+    return  (edp_raw[0], edp_raw[1]), True
 
     # print(life_eval(tiling_string,input_dnn[0][0],tmp_hw_spec,df_order=lp_order_string))
 
@@ -632,6 +631,8 @@ for _ in range(trials):
     penalty_dw = get_score_whole_dnn(tiling_string_dw, consumption_dw, tmp_hw_spec2, lp_order_string_dw, input_dnn_dw)
     print(penalty_std)
     print(penalty_dw)
+    total_score=(penalty_std[0][0]+penalty_dw[0][0])*(penalty_std[0][1]+penalty_dw[0][1])
+    print(total_score)
     if (not penalty_std[1]) or (not penalty_dw[1]):
         out_of_limit_num+=1
 print(out_of_limit_num/trials)
