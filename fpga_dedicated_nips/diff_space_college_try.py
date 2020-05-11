@@ -302,6 +302,7 @@ tmp_hw_spec={\
 
 
 def hardware_translation(ratio_noc,ratio_gb,pe_array,tmp_hw_spec,bw=16):
+
     #in_ch, out_ch, X, Y, X_K, Y_K
     rf_vol=tmp_hw_spec['rf_vol']/bw
     gb_vol=tmp_hw_spec['gb_vol']/bw
