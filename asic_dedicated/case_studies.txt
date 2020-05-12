@@ -1,0 +1,44 @@
+#orignial
+#eyeriss
+tmp_hw_spec={\
+    'gb_vol':108*1024*8, \
+    'rf_vol':512*8, \
+    'num_pe':129, \
+    'num_rf':129
+}
+
+
+
+
+#more pe 1
+tmp_hw_spec={\
+    'gb_vol':108*1024*8, \
+    'rf_vol':256*8, \
+    'num_pe':256, \
+    'num_rf':256
+}
+
+#more pe 2 
+tmp_hw_spec={\
+    'gb_vol':108*1024*8, \
+    'rf_vol':128*8, \
+    'num_pe':512, \
+    'num_rf':512
+}
+
+#more rf 1
+tmp_hw_spec={\
+    'gb_vol':108*1024*8, \
+    'rf_vol':1024*8, \
+    'num_pe':64, \
+    'num_rf':64
+}
+
+#more rf 2
+tmp_hw_spec={\
+    'gb_vol':108*1024*8, \
+    'rf_vol':2048*8, \
+    'num_pe':32, \
+    'num_rf':32
+}
+
