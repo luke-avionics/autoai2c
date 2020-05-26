@@ -575,10 +575,10 @@ def sample_energy(input_input_df_dict,input_stride,hw_spec,mode,input_df_order=N
 #                                           'E_gb_to_noc':E_gb_to_noc/opr_conv.energy,\
 #                                           'E_noc_to_rf':E_noc_to_rf/opr_conv.energy,\
 #                                           'E_rf_to_alu':E_rf_to_alu/opr_conv.energy})
-    return opr_conv.energy,opr_conv.time,{'E_dram_to_gb':E_dram_to_gb/opr_conv.energy,\
-                                           'E_gb_to_noc':E_gb_to_noc/opr_conv.energy,\
-                                           'E_noc_to_rf':E_noc_to_rf/opr_conv.energy,\
-                                           'E_rf_to_alu':E_rf_to_alu/opr_conv.energy}
+    return opr_conv.energy,opr_conv.time,{'E_dram_to_gb':E_dram_to_gb,\
+                                           'E_gb_to_noc':E_gb_to_noc,\
+                                           'E_noc_to_rf':E_noc_to_rf,\
+                                           'E_rf_to_alu':E_rf_to_alu}
 
 # tmp_hw_spec={\
 #     'gb_vol':2*1024*1024, \

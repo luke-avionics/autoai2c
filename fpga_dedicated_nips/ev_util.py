@@ -60,8 +60,18 @@ def life_eval(actions,stride,hw_spec,mode,group_num=1,df_order=None):
         buffer_not_exceed=False
     return penalty, buffer_not_exceed
 
-
-
+def weight_interface_gen(num_layers):
+    str1=""
+    for i in range(num_layers):
+        if (i+1)%3==0:
+            str1 += "# pragma HLS INTERFACE m_axi depth=M" + str(i + 1) + \
+                     "*K" + str(i + 1) + "*K" + str(i + 1) + "/4 port=weight" + str(i + 1) + "\n\r"
+        else:
+            str1+="# pragma HLS INTERFACE m_axi depth=M"+str(i+1)+\
+                    "*N"+str(i+1)+"*K"+str(i+1)+"*K"+str(i+1)+"/4 port=weight"+str(i+1)+"\n\r"
+    return str1
+print(weight_interface_gen(50))
+exit()
 
 #noc_template to be considered 
 noc_template=[['col_kernel_noc','row_kernel_noc','ch_in_noc','ch_out_noc'], \

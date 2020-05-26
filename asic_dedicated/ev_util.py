@@ -48,9 +48,7 @@ def life_eval(actions,stride,hw_spec,mode,group_num=1,df_order=None):
     #if exceeded return extremely large penalty
     except Exception as e:
         if 'resource' in str(e):
-
-            print('error:', e)
-
+            #print('error:', e)
             pass
         else:
             print('error:',e)
@@ -199,4 +197,167 @@ def _gcd(l):
     for i in range(2,len(l)): 
         gcd=find_gcd(gcd,l[i]) 
     return gcd
+
+def ref_location_optimization(df_order, df_config_dict,mode):
+    if "ref_gb_out" not in df_order:
+        df_order=["ref_gb_out"]+df_order
+        df_order=["ref_gb_in"]+df_order
+        df_order=["ref_gb_we"]+df_order
+
+    if "ref_rf_out" not in df_order:
+        df_order=["ref_rf_out"]+df_order
+        df_order=["ref_rf_in"]+df_order
+        df_order=["ref_rf_we"]+df_order
+    if mode==0 or mode==2:
+        #gb out
+        ref_rf_out_idx=df_order.index('ref_gb_out')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('out_dram' in df_order[i] or 'batch_dram' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'dram' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_gb_out')
+        del df_order[ref_rf_out_idx]
+
+        #gb kernel
+        ref_rf_out_idx=df_order.index('ref_gb_we')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('kernel_dram' in df_order[i] or 'ch_out_dram' in df_order[i] or 'ch_in_dram' in df_order[i] or 'batch_dram' in df_order[i] ) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'dram' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_gb_we')
+        del df_order[ref_rf_out_idx]
+
+        #gb input
+        ref_rf_out_idx=df_order.index('ref_gb_in')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('kernel_dram' in df_order[i] or 'col_out_dram' in df_order[i] or 'row_out_dram' in df_order[i] or 'ch_in_dram' in df_order[i] or 'batch_dram' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'dram' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_gb_in')
+        del df_order[ref_rf_out_idx]
+
+
+
+        #rf out
+        ref_rf_out_idx=df_order.index('ref_rf_out')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('out_gb' in df_order[i] or 'batch_gb' in df_order[i] or'out_dram' in df_order[i] or 'batch_dram' in df_order[i]  ) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'gb' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_rf_out')
+        del df_order[ref_rf_out_idx]
+
+        #rf kernel
+        ref_rf_out_idx=df_order.index('ref_rf_we')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('kernel_gb' in df_order[i] or 'ch_out_gb' in df_order[i] or 'ch_in_gb' in df_order[i] or 'batch_gb' in df_order[i] or \
+                'kernel_dram' in df_order[i] or 'ch_out_dram' in df_order[i] or 'ch_in_dram' in df_order[i] or 'batch_dram' in df_order[i]  ) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'gb' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_rf_we')
+        del df_order[ref_rf_out_idx]
+
+        #rf input
+        ref_rf_out_idx=df_order.index('ref_rf_in')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('kernel_gb' in df_order[i] or 'col_out_gb' in df_order[i] or 'row_out_gb' in df_order[i] or 'ch_in_gb' in df_order[i] or 'batch_gb' in df_order[i] or\
+                'kernel_dram' in df_order[i] or 'col_out_dram' in df_order[i] or 'row_out_dram' in df_order[i] or 'ch_in_dram' in df_order[i] or 'batch_dram' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'gb' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_rf_in')
+        del df_order[ref_rf_out_idx]
+    elif mode==1:
+        #gb out
+        ref_rf_out_idx=df_order.index('ref_gb_out')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('out_dram' in df_order[i] or 'batch_dram' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'dram' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_gb_out')
+        del df_order[ref_rf_out_idx]
+
+        #gb kernel
+        ref_rf_out_idx=df_order.index('ref_gb_we')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('kernel_dram' in df_order[i] or 'ch_out_dram' in df_order[i]  or 'batch_dram' in df_order[i] ) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'dram' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_gb_we')
+        del df_order[ref_rf_out_idx]
+
+        #gb input
+        ref_rf_out_idx=df_order.index('ref_gb_in')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('kernel_dram' in df_order[i] or 'col_out_dram' in df_order[i] or 'row_out_dram' in df_order[i] or 'ch_out_dram' in df_order[i] or 'batch_dram' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'dram' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_gb_in')
+        del df_order[ref_rf_out_idx]
+
+
+
+        #rf out
+        ref_rf_out_idx=df_order.index('ref_rf_out')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('out_gb' in df_order[i] or 'batch_gb' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'gb' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_rf_out')
+        del df_order[ref_rf_out_idx]
+
+        #rf kernel
+        ref_rf_out_idx=df_order.index('ref_rf_we')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('kernel_gb' in df_order[i] or 'ch_out_gb' in df_order[i] or 'batch_gb' in df_order[i] ) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'gb' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_rf_we')
+        del df_order[ref_rf_out_idx]
+
+        #rf input
+        ref_rf_out_idx=df_order.index('ref_rf_in')
+        first_gb_out_idx=ref_rf_out_idx
+        for i in range(len(df_order)):
+            if(('kernel_gb' in df_order[i] or 'col_out_gb' in df_order[i] or 'row_out_gb' in df_order[i] or 'ch_out_gb' in df_order[i] or 'batch_gb' in df_order[i]) and df_config_dict[df_order[i]]!=1):
+                first_gb_out_idx=i
+                break
+            elif 'gb' in df_order[i]:
+                first_gb_out_idx=i
+        df_order.insert(first_gb_out_idx,'ref_rf_in')
+        del df_order[ref_rf_out_idx]
+    return df_order
+
 

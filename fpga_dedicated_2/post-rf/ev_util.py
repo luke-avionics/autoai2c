@@ -57,8 +57,27 @@ def life_eval(actions,stride,hw_spec,mode,group_num=1,df_order=None):
 
 
 
-    
+def dnn_code_generation(input_dnn):
+    dnn_code_string=""
+    for l in range(len(input_dnn)):
+        if input_dnn[l][2]==0:
+            dnn_code_string+="const int M"+str(l+1)+"="+str(int(input_dnn[l][1]['ch_out'][0]))+","
+            dnn_code_string += " N" + str(l + 1) + "=" + str(int(input_dnn[l][1]['ch_in'][0])) + ","
+            dnn_code_string += " C" + str(l + 1) + "=" + str(int(input_dnn[l][1]['col_out'][0])) + ","
+            dnn_code_string += " S" + str(l + 1) + "=" + str(1) + ","
+            dnn_code_string += " K" + str(l + 1) + "=" + str(int(input_dnn[l][1]['row_kernel'][0])) + ";\n\r"
+            dnn_code_string+= "const int H"+ str(l + 1)+"= C"+str(l+1)+"- S"+str(l+1)+"+ K"+str(l+1)+";\n\r"
+        if input_dnn[l][2]==1:
+            dnn_code_string+="const int M"+str(l+1)+"="+str(int(input_dnn[l][1]['ch_out'][0]))+","
+            dnn_code_string += " C" + str(l + 1) + "=" + str(int(input_dnn[l][1]['col_out'][0])) + ","
+            dnn_code_string += " S" + str(l + 1) + "=" + str(1) + ","
+            dnn_code_string += " K" + str(l + 1) + "=" + str(int(input_dnn[l][1]['row_kernel'][0])) + ";\n\r"
+            dnn_code_string+= "const int H"+ str(l + 1)+"= C"+str(l+1)+"- S"+str(l+1)+"+ K"+str(l+1)+";\n\r"
+    return dnn_code_string
 
+input_dnn=[[1, {'ch_out': [16, 0], 'ch_in': [3, 0], 'batch': [1, 0], 'col_out': [32, 0], 'row_out': [32, 0], 'row_kernel': [3, 0], 'col_kernel': [3, 0]}, 0, 1], [1, {'ch_out': [96, 0], 'ch_in': [16, 0], 'batch': [1, 0], 'col_out': [32, 0], 'row_out': [32, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [96, 0], 'batch': [1, 0], 'col_out': [32, 0], 'row_out': [32, 0], 'row_kernel': [3, 0], 'col_kernel': [3, 0]}, 1, 1], [1, {'ch_out': [32, 0], 'ch_in': [96, 0], 'batch': [1, 0], 'col_out': [32, 0], 'row_out': [32, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [192, 0], 'ch_in': [32, 0], 'batch': [1, 0], 'col_out': [32, 0], 'row_out': [32, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [192, 0], 'batch': [1, 0], 'col_out': [32, 0], 'row_out': [32, 0], 'row_kernel': [3, 0], 'col_kernel': [3, 0]}, 1, 1], [1, {'ch_out': [64, 0], 'ch_in': [192, 0], 'batch': [1, 0], 'col_out': [32, 0], 'row_out': [32, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [384, 0], 'ch_in': [64, 0], 'batch': [1, 0], 'col_out': [32, 0], 'row_out': [32, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [2, {'ch_out': [384, 0], 'batch': [1, 0], 'col_out': [16, 0], 'row_out': [16, 0], 'row_kernel': [5, 0], 'col_kernel': [5, 0]}, 1, 1], [1, {'ch_out': [112, 0], 'ch_in': [384, 0], 'batch': [1, 0], 'col_out': [16, 0], 'row_out': [16, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [336, 0], 'ch_in': [112, 0], 'batch': [1, 0], 'col_out': [16, 0], 'row_out': [16, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [336, 0], 'batch': [1, 0], 'col_out': [16, 0], 'row_out': [16, 0], 'row_kernel': [5, 0], 'col_kernel': [5, 0]}, 1, 1], [1, {'ch_out': [112, 0], 'ch_in': [336, 0], 'batch': [1, 0], 'col_out': [16, 0], 'row_out': [16, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [672, 0], 'ch_in': [112, 0], 'batch': [1, 0], 'col_out': [16, 0], 'row_out': [16, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [2, {'ch_out': [672, 0], 'batch': [1, 0], 'col_out': [8, 0], 'row_out': [8, 0], 'row_kernel': [5, 0], 'col_kernel': [5, 0]}, 1, 1], [1, {'ch_out': [184, 0], 'ch_in': [672, 0], 'batch': [1, 0], 'col_out': [8, 0], 'row_out': [8, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [1104, 0], 'ch_in': [184, 0], 'batch': [1, 0], 'col_out': [8, 0], 'row_out': [8, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [1104, 0], 'batch': [1, 0], 'col_out': [8, 0], 'row_out': [8, 0], 'row_kernel': [5, 0], 'col_kernel': [5, 0]}, 1, 1], [1, {'ch_out': [352, 0], 'ch_in': [1104, 0], 'batch': [1, 0], 'col_out': [8, 0], 'row_out': [8, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1], [1, {'ch_out': [1504, 0], 'ch_in': [352, 0], 'batch': [1, 0], 'col_out': [8, 0], 'row_out': [8, 0], 'row_kernel': [1, 0], 'col_kernel': [1, 0]}, 0, 1]]
+print(dnn_code_generation(input_dnn))
+exit()
 
 
 
